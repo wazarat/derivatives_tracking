@@ -1,0 +1,93 @@
+/* High Contrast Mode */
+.high-contrast {
+  /* Increase contrast for text */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  
+  /* Ensure strong contrast for interactive elements */
+  --primary: 240 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Make borders more visible */
+  --border: 0 0% 0%;
+  
+  /* Increase contrast for cards and UI elements */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  
+  /* Make focus states more visible */
+  --ring: 240 100% 50%;
+  
+  /* Ensure error states are clearly visible */
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Increase text contrast */
+  --muted-foreground: 0 0% 40%;
+  
+  /* Stronger focus outlines */
+  *:focus {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  
+  /* Increase border contrast */
+  .border, [class*="border-"] {
+    border-color: hsl(var(--border));
+    border-width: 2px;
+  }
+  
+  /* Increase text size slightly for better readability */
+  p, span, a, button, input, select, textarea {
+    font-weight: 500;
+  }
+  
+  /* Increase contrast for links */
+  a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+/* Dark mode high contrast adjustments */
+.dark .high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  
+  --primary: 240 100% 70%;
+  --primary-foreground: 0 0% 0%;
+  
+  --border: 0 0% 100%;
+  
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 100%;
+  
+  --muted-foreground: 0 0% 80%;
+}
+
+/* Reduced Motion */
+.reduce-motion {
+  /* Remove all animations and transitions */
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable any hover effects that use transitions */
+  *:hover {
+    transition: none !important;
+  }
+  
+  /* Remove any transform transitions */
+  [style*="transform"] {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  /* Disable any loading animations */
+  [class*="animate-"], [class*="motion-"] {
+    animation: none !important;
+  }
+}

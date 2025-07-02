@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      target: development
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - canhav-network
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+      target: development
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./apps/api:/app
+      - /app/__pycache__
+    environment:
+      - ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/canhav
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - canhav-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=canhav
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - canhav-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - canhav-network
+
+  # For production, we'll use Supabase directly
+  # This is just for local development
+  # supabase:
+  #   image: supabase/storage-api:v1.0.0
+  #   environment:
+  #     - ANON_KEY=${SUPABASE_ANON_KEY}
+  #     - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - DATABASE_URL=postgresql://postgres:postgres@db:5432/canhav
+  #   ports:
+  #     - '5000:5000'
+  #   depends_on:
+  #     - db
+  #   networks:
+  #     - canhav-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  canhav-network:
+    driver: bridge
