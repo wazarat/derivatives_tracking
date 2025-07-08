@@ -8,15 +8,7 @@ import enum
 Base = declarative_base()
 
 # Association tables
-portfolio_assets = Table(
-    'portfolio_assets',
-    Base.metadata,
-    Column('portfolio_id', ForeignKey('portfolios.id'), primary_key=True),
-    Column('asset_id', ForeignKey('assets.id'), primary_key=True),
-    Column('weight', Float, nullable=False),
-    Column('created_at', DateTime, server_default=func.now()),
-    Column('updated_at', DateTime, onupdate=func.now())
-)
+# Removed redundant portfolio_assets Table definition
 
 class Sector(str, enum.Enum):
     NATIVE_CRYPTO = "native_crypto"
@@ -140,7 +132,7 @@ class Event(Base):
     event_type = Column(String, nullable=False)  # e.g., 'price_alert', 'news', 'risk_change'
     title = Column(String, nullable=False)
     description = Column(String)
-    metadata = Column(JSON)  # Flexible field for event-specific data
+    event_metadata = Column(JSON)  # Flexible field for event-specific data
     is_read = Column(Boolean, default=False)
     user_id = Column(String, ForeignKey('users.id'), nullable=False)
     related_asset_id = Column(String, ForeignKey('assets.id'))

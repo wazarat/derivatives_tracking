@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import httpx
 
-from .base import BaseAdapter
-from ...models import Sector, RiskTier
+from app.adapters.base import BaseAdapter
+from app.models import Sector, RiskTier
 
 logger = logging.getLogger(__name__)
 

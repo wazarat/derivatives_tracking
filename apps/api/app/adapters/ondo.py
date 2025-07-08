@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import httpx
 
-from .base import BaseAdapter
-from ...models import Sector, RiskTier
+from app.adapters.base import BaseAdapter
+from app.models import Sector, RiskTier
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class OndoAdapter(BaseAdapter):
                 "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
-                "risk_tier": RiskTier.INCOME_PLUS,
+                "risk_tier": RiskTier.YIELD_PLUS,
             },
             "ohmydai": {
                 "ticker": "OHMDAI",
@@ -42,7 +42,7 @@ class OndoAdapter(BaseAdapter):
                 "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
-                "risk_tier": RiskTier.BALANCED,
+                "risk_tier": RiskTier.MARKET_BETA,
             },
             "ousg": {
                 "ticker": "OUSG",
@@ -51,7 +51,7 @@ class OndoAdapter(BaseAdapter):
                 "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
-                "risk_tier": RiskTier.INCOME,
+                "risk_tier": RiskTier.YIELD_PLUS,
             },
         }
     
@@ -255,14 +255,13 @@ class OndoAdapter(BaseAdapter):
         # Start with the base risk tier (1-5 scale, lower is better)
         base_scores = {
             RiskTier.CASH_CORE: 1.0,
-            RiskTier.INCOME: 2.0,
-            RiskTier.INCOME_PLUS: 2.5,
-            RiskTier.BALANCED: 3.0,
-            RiskTier.GROWTH: 4.0,
-            RiskTier.AGGRESSIVE: 5.0,
+            RiskTier.YIELD_PLUS: 2.0,
+            RiskTier.MARKET_BETA: 3.0,
+            RiskTier.TACTICAL_EDGE: 4.0,
+            RiskTier.MOON_SHOT: 5.0,
         }
         
-        risk_tier = asset_data.get("risk_tier", RiskTier.BALANCED)
+        risk_tier = asset_data.get("risk_tier", RiskTier.MARKET_BETA)
         score = base_scores.get(risk_tier, 3.0)
         
         # Adjust based on market cap (higher is better)
