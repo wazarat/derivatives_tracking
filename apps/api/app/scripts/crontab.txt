@@ -1,0 +1,17 @@
+# CanHav Crontab Configuration
+# Run cron_snapshot.py every 5 minutes to sync Supabase to Postgres
+# To install: crontab crontab.txt
+
+# Environment variables
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+PYTHONPATH=/app
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/canhav
+
+# Run cron_snapshot.py every 5 minutes
+*/5 * * * * cd /app && python -m app.scripts.cron_snapshot >> /app/logs/cron_snapshot.log 2>&1
+
+# Daily cleanup of old log files (keep last 7 days)
+0 0 * * * find /app/logs -name "*.log" -type f -mtime +7 -delete

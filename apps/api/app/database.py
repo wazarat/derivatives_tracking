@@ -1,9 +1,8 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from contextlib import asynccontextmanager
+import logging
 import os
 import ssl
-import logging
 from dotenv import load_dotenv
 
 # Configure logging
@@ -12,69 +11,66 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Get database URLs from environment variables
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
+# Get database connection string from environment variables
+# Priority: SUPABASE_DATABASE_URL > DATABASE_URL > SQLite
 SUPABASE_DATABASE_URL = os.getenv("SUPABASE_DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+SQLITE_URL = "sqlite+aiosqlite:///./sql_app.db"
 
-logger.info(f"Primary DATABASE_URL: {DATABASE_URL}")
+# SSL context for Supabase Postgres
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Choose the appropriate database connection
 if SUPABASE_DATABASE_URL:
-    logger.info(f"Fallback SUPABASE_DATABASE_URL available")
-
-# Function to create engine with appropriate connect_args
-def create_db_engine(db_url):
-    connect_args = {}
-    if db_url.startswith("sqlite"):
-        connect_args["check_same_thread"] = False
-    elif "postgresql" in db_url or "postgres" in db_url:
-        # For PostgreSQL connections
-        if "supabase" in db_url:
-            # For Supabase PostgreSQL, use SSL
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            connect_args["ssl"] = ssl_context
-            # Increase connection timeout for Supabase
-            connect_args["command_timeout"] = 30
-            connect_args["timeout"] = 30
-            logger.info(f"Connecting to Supabase PostgreSQL with SSL and increased timeout")
-        else:
-            # For local PostgreSQL, no SSL needed
-            logger.info(f"Connecting to local PostgreSQL")
+    # Use Supabase Postgres
+    logger.info("Using Supabase Postgres database")
+    # Convert connection string to asyncpg format if needed
+    if SUPABASE_DATABASE_URL.startswith("postgres://"):
+        SUPABASE_DATABASE_URL = SUPABASE_DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif not "asyncpg" in SUPABASE_DATABASE_URL:
+        # Ensure we're using asyncpg driver
+        if SUPABASE_DATABASE_URL.startswith("postgresql://"):
+            SUPABASE_DATABASE_URL = SUPABASE_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
     
-    try:
-        return create_async_engine(
-            db_url,
-            pool_pre_ping=True,
-            echo=False,
-            connect_args=connect_args,
-            # Add connection pool settings
-            pool_size=5,
-            max_overflow=10,
-            pool_timeout=30,
-            pool_recycle=1800,  # Recycle connections after 30 minutes
-        )
-    except Exception as e:
-        logger.error(f"Failed to create engine for {db_url}: {e}")
-        return None
-
-# Try to create engine with primary database URL
-engine = create_db_engine(DATABASE_URL)
-
-# If primary engine creation failed and we have a fallback URL, try that
-if engine is None and SUPABASE_DATABASE_URL:
-    logger.warning(f"Failed to connect to primary database, trying fallback")
-    engine = create_db_engine(SUPABASE_DATABASE_URL)
-
-# If both failed, fall back to SQLite
-if engine is None:
-    logger.warning(f"All database connections failed, falling back to SQLite")
-    sqlite_url = "sqlite+aiosqlite:///./sql_app.db"
-    connect_args = {"check_same_thread": False}
+    logger.info(f"Using connection string format: {SUPABASE_DATABASE_URL.split('@')[0].split('://')[0]}")
+    
+    # Create engine with Supabase Postgres
     engine = create_async_engine(
-        sqlite_url,
+        SUPABASE_DATABASE_URL,
         pool_pre_ping=True,
         echo=False,
-        connect_args=connect_args
+        connect_args={"ssl": ssl_context}
+    )
+elif DATABASE_URL:
+    # Use standard Postgres
+    logger.info("Using standard Postgres database")
+    # Convert connection string to asyncpg format if needed
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif not "asyncpg" in DATABASE_URL:
+        # Ensure we're using asyncpg driver
+        if DATABASE_URL.startswith("postgresql://"):
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    logger.info(f"Using connection string format: {DATABASE_URL.split('@')[0].split('://')[0]}")
+    
+    # Create engine with standard Postgres
+    engine = create_async_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        echo=False
+    )
+else:
+    # Fallback to SQLite
+    logger.info(f"No database connection string found, using SQLite: {SQLITE_URL}")
+    # Create engine with SQLite
+    engine = create_async_engine(
+        SQLITE_URL,
+        pool_pre_ping=True,
+        echo=False,
+        connect_args={"check_same_thread": False}
     )
 
 # Create an async session factory
@@ -103,8 +99,17 @@ async def init_db():
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
+        logger.error(f"Error creating database tables: {e}")
         raise
+
+# Dependency for FastAPI to get async DB session
+async def get_async_db():
+    """Dependency that provides an async database session"""
+    async_session = AsyncSessionLocal()
+    try:
+        yield async_session
+    finally:
+        await async_session.close()
 
 async def get_db():
     """Provide a database session for dependency injection"""

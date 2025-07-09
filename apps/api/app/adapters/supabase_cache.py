@@ -28,19 +28,10 @@ class SupabaseCache:
         if not self.url or not self.key:
             raise ValueError("Supabase URL and key must be provided")
         
-        # Initialize Supabase client without any additional options
-        # This fixes the "proxy" argument error
-        try:
-            self.client = create_client(self.url, self.key)
-            logger.info("Supabase client initialized successfully")
-        except TypeError as e:
-            if "got an unexpected keyword argument 'proxy'" in str(e):
-                # Fall back to direct initialization without create_client helper
-                from supabase._sync.client import SyncClient
-                self.client = SyncClient(self.url, self.key)
-                logger.info("Supabase client initialized with fallback method")
-            else:
-                raise
+        # Use the create_client function which is compatible with supabase v1.2.0
+        from supabase import create_client
+        self.client = create_client(self.url, self.key)
+        logger.info("Supabase client initialized with create_client")
             
         self.table_name = "cache"
         
@@ -56,8 +47,14 @@ class SupabaseCache:
         except Exception as e:
             logger.warning(f"Cache table check failed: {e}. Attempting to create table.")
             try:
-                # Create the table with the necessary columns using SQL
-                sql = f"""
+                # Since we can't directly create tables via the REST API without custom RPC functions,
+                # we'll need to handle this differently:
+                # 1. Log the error and provide instructions
+                # 2. Continue without caching
+                logger.error(f"""
+                Cannot automatically create cache table in Supabase.
+                Please create the table manually in the Supabase dashboard with the following SQL:
+                
                 CREATE TABLE IF NOT EXISTS {self.table_name} (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL,
@@ -65,16 +62,14 @@ class SupabaseCache:
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
                 
-                -- Add index for expiry to make cleanup queries faster
                 CREATE INDEX IF NOT EXISTS idx_{self.table_name}_expiry ON {self.table_name}(expiry);
-                """
+                """)
                 
-                # Execute SQL directly
-                self.client.postgrest.rpc("exec_sql", {"query": sql}).execute()
-                
-                logger.info(f"Created cache table: {self.table_name}")
+                # For now, we'll try to continue without caching
+                # The application will still work, but performance may be affected
+                logger.warning("Continuing without cache table - API will work but performance may be affected")
             except Exception as create_error:
-                logger.error(f"Failed to create cache table: {create_error}")
+                logger.error(f"Failed to handle cache table creation: {create_error}")
                 # Continue without caching if table creation fails
     
     async def get(self, key: str) -> Optional[Any]:

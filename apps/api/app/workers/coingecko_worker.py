@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from ..services.coingecko_service import CoinGeckoService
-from ..adapters.supabase_cache import SupabaseCache
+from ..cache.memory_cache import InMemoryCache
 from ..adapters.coingecko import CoinGeckoAdapter
 from ..models import Base
 
@@ -90,7 +90,7 @@ class CoinGeckoWorker:
             # Create a new session for this run
             async with self.session_factory() as session:
                 # Create services
-                cache = SupabaseCache(url=self.supabase_url, key=self.supabase_key)
+                cache = InMemoryCache()
                 adapter = CoinGeckoAdapter()
                 service = CoinGeckoService(db=session, cache=cache, adapter=adapter)
                 

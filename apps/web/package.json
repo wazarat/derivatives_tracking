@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test": "cypress run",
+    "test:jest": "jest"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.3",
@@ -53,6 +57,7 @@
     "next-auth": "^4.24.5",
     "next-themes": "^0.2.1",
     "openai": "^4.28.0",
+    "posthog-js": "^1.96.1",
     "react": "^18",
     "react-day-picker": "^8.10.0",
     "react-dom": "^18",
@@ -65,14 +70,19 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.0",
     "@types/node": "^20.10.5",
     "@types/react": "^18.2.42",
     "@types/react-dom": "^18.2.18",
     "autoprefixer": "^10.4.16",
+    "cypress": "^13.6.2",
     "eslint": "^8.55.0",
     "eslint-config-next": "14.0.4",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
+    "ts-jest": "^29.1.0",
     "typescript": "^5.3.3"
   }
 }

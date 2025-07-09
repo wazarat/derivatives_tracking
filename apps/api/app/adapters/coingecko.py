@@ -13,7 +13,8 @@ class CoinGeckoAdapter:
     """
     Adapter for interacting with the CoinGecko API
     """
-    BASE_URL = "https://api.coingecko.com/api/v3"
+    FREE_BASE_URL = "https://api.coingecko.com/api/v3"
+    PRO_BASE_URL = "https://pro-api.coingecko.com/api/v3"
     
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -26,6 +27,8 @@ class CoinGeckoAdapter:
         self.session = None
         self.rate_limit_remaining = 50  # Default rate limit for free tier
         self.rate_limit_reset_at = 0
+        # Use Pro API URL since we're using a Pro API key (starting with CG-)
+        self.BASE_URL = self.PRO_BASE_URL
         
     async def _ensure_session(self):
         """Ensure aiohttp session exists"""

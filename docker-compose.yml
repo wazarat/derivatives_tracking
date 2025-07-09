@@ -5,63 +5,103 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    image: canhav/api:latest
+    restart: unless-stopped
     ports:
-      - '8000:8000'
+      - "8000:8000"
     volumes:
       - ./apps/api:/app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/canhav
-      - SUPABASE_DATABASE_URL=postgresql+asyncpg://postgres:Aliali-572@gxgmcrqcxfgmhvuborpa.supabase.co:5432/postgres
-      - COINGECKO_API_KEY=CG-PH1JM3XpxRdGwmyCr66814mF
-      - COINGECKO_FETCH_INTERVAL=300
-      - COINGECKO_ASSETS_LIMIT=250
-      - ENV=development
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - SUPABASE_URL=https://gxgmcrqcxfgmhvuborpa.supabase.co
-      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Z21jcnFjeGZnbWh2dWJvcnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NzExMjQsImV4cCI6MjA2NzA0NzEyNH0.-LoPXC3qe3-BfzlATE3TDpvDZ0nyDX98hYkwzugzFVs
-    networks:
-      - canhav-network
+      - DATABASE_URL=${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/canhav}
+      - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=canhav
-    ports:
-      - '5433:5432'
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     networks:
       - canhav-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+  
   web:
     build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile
-      target: development
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: canhav/web:latest
+    restart: unless-stopped
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
       - ./apps/web:/app
       - /app/node_modules
+      - /app/.next
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_SUPABASE_URL=https://gxgmcrqcxfgmhvuborpa.supabase.co
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Z21jcnFjeGZnbWh2dWJvcnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NzExMjQsImV4cCI6MjA2NzA0NzEyNH0.-LoPXC3qe3-BfzlATE3TDpvDZ0nyDX98hYkwzugzFVs
+      - NODE_ENV=${NODE_ENV:-production}
+      - API_URL=http://api:8000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+      - NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
+      - NEXT_PUBLIC_CANNY_APP_ID=${NEXT_PUBLIC_CANNY_APP_ID}
     depends_on:
       - api
     networks:
       - canhav-network
+    command: npm run start
+  
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=canhav
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - canhav-network
+  
+  cron:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: canhav/cron:latest
+    restart: unless-stopped
+    volumes:
+      - ./apps/api:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/canhav}
+      - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - canhav-network
+    command: crond -f -d 8
 
 networks:
   canhav-network:

@@ -25,7 +25,8 @@ import {
   PieChart, 
   Settings, 
   TrendingUp, 
-  User 
+  User,
+  LineChart
 } from 'lucide-react';
 
 export function Header() {
@@ -43,6 +44,11 @@ export function Header() {
       name: 'Assets',
       href: '/assets',
       icon: <BarChart3 className="h-4 w-4 mr-2" />
+    },
+    {
+      name: 'Metrics',
+      href: '/metrics',
+      icon: <LineChart className="h-4 w-4 mr-2" />
     },
     {
       name: 'Portfolios',

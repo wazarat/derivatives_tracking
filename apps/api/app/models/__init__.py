@@ -1,3 +1,4 @@
+# Models module
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Table, Enum, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -141,3 +142,7 @@ class Event(Base):
     # Relationships
     user = relationship("User")
     related_asset = relationship("Asset")
+
+from .crypto import Asset, AssetMetric, Market, Sector, RiskTier
+
+__all__ = ["Asset", "AssetMetric", "Market", "Sector", "RiskTier"]
