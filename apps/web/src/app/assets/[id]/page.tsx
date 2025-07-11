@@ -4,16 +4,16 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { fetchAssetById, fetchAssetMetrics, fetchAssetRiskScore } from '@/services/assetService';
-import { riskTierColors, riskTierDisplayNames, sectorDisplayNames } from '@/types/assets';
+import { fetchAssetById, fetchAssetMetrics, fetchAssetRiskScore } from '../../../services/assetService';
+import { riskTierColors, riskTierDisplayNames, sectorDisplayNames } from '../../../types/assets';
 import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
-import { WatchlistButton } from '@/components/assets/WatchlistButton';
-import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { WatchlistButton } from '../../../components/assets/WatchlistButton';
+import { InfoTooltip } from '../../../components/ui/info-tooltip';
 
 export default function AssetDetailPage() {
   const params = useParams();

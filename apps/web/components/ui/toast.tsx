@@ -11,6 +11,10 @@ export interface ToastProps {
   duration?: number;
   onClose?: () => void;
   isVisible?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+  title?: string;
+  description?: string;
 }
 
 export const Toast: React.FC<ToastProps> = ({
@@ -19,6 +23,8 @@ export const Toast: React.FC<ToastProps> = ({
   duration = 5000,
   onClose,
   isVisible = true,
+  children,
+  className = '',
 }) => {
   const [visible, setVisible] = useState(isVisible);
 
@@ -69,7 +75,7 @@ export const Toast: React.FC<ToastProps> = ({
   };
 
   return (
-    <div className={getToastClasses()} role="alert">
+    <div className={`${getToastClasses()} ${className}`} role="alert">
       <div className="flex items-center">
         <div className="mr-3">{getIcon()}</div>
         <div className="text-sm font-medium">{message}</div>
@@ -86,6 +92,33 @@ export const Toast: React.FC<ToastProps> = ({
       </button>
     </div>
   );
+};
+
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <>{children}</>;
+};
+
+export const ToastTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <div className="text-sm font-medium">{children}</div>;
+};
+
+export const ToastDescription: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <div className="text-sm opacity-90">{children}</div>;
+};
+
+export const ToastClose: React.FC = () => {
+  return (
+    <button
+      className="ml-auto -mx-1.5 -my-1.5 p-1.5 rounded-lg focus:ring-2 focus:ring-gray-300"
+      aria-label="Close"
+    >
+      <XCircle className="h-4 w-4 text-gray-500" />
+    </button>
+  );
+};
+
+export const ToastViewport: React.FC = () => {
+  return <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50" />;
 };
 
 export const ToastContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {

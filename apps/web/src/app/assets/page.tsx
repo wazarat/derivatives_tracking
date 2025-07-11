@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AssetCard } from '@/components/assets/AssetCard';
-import { AssetFilters, AssetFilterValues } from '@/components/assets/AssetFilters';
-import { fetchAssets, fetchSectors, fetchRiskTiers } from '@/services/assetService';
-import { Asset, Sector, RiskTier } from '@/types/assets';
+import { AssetCard } from '../../components/assets/AssetCard';
+import { AssetFilters, AssetFilterValues } from '../../components/assets/AssetFilters';
+import { fetchAssets, fetchSectors, fetchRiskTiers } from '../../services/assetService';
+import { Asset, Sector, RiskTier } from '../../types/assets';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Pagination } from '@/components/ui/pagination';
+import { Button } from '../../../components/ui/button';
+import { Pagination } from '../../components/ui/pagination';
 
 const ITEMS_PER_PAGE = 12;
 

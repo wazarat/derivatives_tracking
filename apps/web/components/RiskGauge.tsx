@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GaugeChart } from '@/components/ui/gauge';
-import { WatchlistItem } from '@/lib/hooks/useWatchlist';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { GaugeChart } from '../components/ui/gauge';
+import { WatchlistItem } from '../lib/hooks/useWatchlist';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { InfoIcon } from 'lucide-react';
 
 interface RiskGaugeProps {
@@ -86,16 +86,19 @@ export function RiskGauge({ watchlist, marketData }: RiskGaugeProps) {
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Portfolio Risk</CardTitle>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
               <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="text-sm">{riskExplanation}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content className="max-w-xs bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg z-50 text-sm">
+                <p className="text-sm">{riskExplanation}</p>
+                <Tooltip.Arrow />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <GaugeChart value={riskScore} size="large" showValue={false} />

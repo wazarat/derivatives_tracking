@@ -1,24 +1,24 @@
 'use client';
 
 import React from 'react';
-import AuthForm from '@/components/auth/AuthForm';
-import { useAuth } from '@/contexts/AuthContext';
+import AuthForm from '../../components/auth/AuthForm';
+import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoaded } = useAuth();
   const router = useRouter();
 
   // Redirect to portfolios if already logged in
   React.useEffect(() => {
-    if (user && !isLoading) {
+    if (user && isLoaded) {
       router.push('/portfolios');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoaded, router]);
 
   // Show loading state while checking auth
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />

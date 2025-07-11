@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WatchlistItem } from '@/lib/hooks/useWatchlist';
-import { formatCurrency, formatPercentage } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { WatchlistItem } from '../lib/hooks/useWatchlist';
+import { formatCurrency, formatPercentage } from '../lib/utils';
 
 // Define a set of colors for the pie chart segments
 const COLORS = [

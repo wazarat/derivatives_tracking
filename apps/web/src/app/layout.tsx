@@ -1,15 +1,14 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { Header } from '@/components/layout/Header';
-import { cn } from '@/lib/utils';
-import '@/styles/globals.css';
-import '@/styles/accessibility.css';
-import { ThemeProvider } from '@/components/theme-provider';
-import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
-import { CookieConsentBanner } from '@/components/analytics/CookieConsentBanner';
+import { Toaster } from '../components/ui/toaster';
+import { AuthProvider } from '../contexts/AuthContext';
+import { Header } from '../components/layout/Header';
+import { cn } from '../lib/utils';
+import '../styles/globals.css';
+import '../styles/accessibility.css';
+import { AnalyticsProvider } from '../contexts/AnalyticsContext';
+import { CookieConsentBanner } from '../components/analytics/CookieConsentBanner';
 import { ClerkProvider } from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,6 +27,17 @@ export const metadata: Metadata = {
     title: 'CanHav',
   },
 };
+
+interface ThemeProviderProps {
+  children: React.ReactNode;
+  attribute?: string;
+  defaultTheme?: string;
+  enableSystem?: boolean;
+}
+
+function ThemeProvider({ children }: ThemeProviderProps) {
+  return <>{children}</>;
+}
 
 export default function RootLayout({
   children,

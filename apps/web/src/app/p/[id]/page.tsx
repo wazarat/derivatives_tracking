@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAssets } from '@/services/assetService';
-import { getPublicPortfolioFromSupabase } from '@/services/supabasePortfolioService';
-import { Portfolio, calculatePortfolioAPY, calculatePortfolioRisk } from '@/services/portfolioService';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/use-toast';
+import { fetchAssets } from '../../../services/assetService';
+import { getPublicPortfoliosFromSupabase } from '../../../services/supabasePortfolioService';
+import { Portfolio, calculatePortfolioAPY, calculatePortfolioRisk } from '../../../services/portfolioService';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Separator } from '../../../components/ui/separator';
+import { Skeleton } from '../../../components/ui/skeleton';
+import { useToast } from '../../../components/ui/use-toast';
 import { ArrowLeft, Copy, Loader2, Share2, User } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,22 +42,22 @@ export default function PublicPortfolioPage({
       setError(null);
       
       try {
-        const publicPortfolio = await getPublicPortfolioFromSupabase(params.id, assets);
+        const portfolios = await getPublicPortfoliosFromSupabase(assets);
+        const publicPortfolio = portfolios.find(p => p.id === params.id);
         
         if (!publicPortfolio) {
           setError('Portfolio not found or is not public');
           return;
         }
         
-        // Verify the portfolio is public
         if (!publicPortfolio.isPublic) {
-          setError('This portfolio is private');
+          setError('This portfolio is not public');
           return;
         }
         
         setPortfolio(publicPortfolio);
-      } catch (err) {
-        console.error('Error loading public portfolio:', err);
+      } catch (error) {
+        console.error('Error loading public portfolio:', error);
         setError('Failed to load portfolio');
       } finally {
         setIsLoading(false);

@@ -1,4 +1,9 @@
-{{ ... }}
+/**
+ * Tailwind-style class-join helper (used throughout the UI)
+ */
+export function cn(...classes: (string | undefined | false | null)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 /**
  * Format a number with commas and optional decimal places

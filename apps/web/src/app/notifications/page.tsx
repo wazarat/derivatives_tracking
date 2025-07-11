@@ -4,19 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bell, Check, Cog, Loader2, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Separator } from '../../components/ui/separator';
+import { useToast } from '../../components/ui/use-toast';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Notification, 
   NotificationType,
   getUserNotifications, 
   markAllNotificationsAsRead, 
   markNotificationAsRead 
-} from '@/services/notificationService';
+} from '../../services/notificationService';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -137,31 +137,31 @@ export default function NotificationsPage() {
   // Get icon and color for notification type
   const getNotificationTypeInfo = (type: NotificationType) => {
     switch (type) {
-      case 'portfolio_update':
+      case NotificationType.PORTFOLIO:
         return { 
           icon: <div className="h-3 w-3 rounded-full bg-blue-500" />,
           label: 'Portfolio Update',
           color: 'bg-blue-500/10 text-blue-500'
         };
-      case 'market_alert':
+      case NotificationType.PRICE_ALERT:
         return { 
           icon: <div className="h-3 w-3 rounded-full bg-yellow-500" />,
           label: 'Market Alert',
           color: 'bg-yellow-500/10 text-yellow-500'
         };
-      case 'risk_warning':
+      case NotificationType.WARNING:
         return { 
           icon: <div className="h-3 w-3 rounded-full bg-red-500" />,
           label: 'Risk Warning',
           color: 'bg-red-500/10 text-red-500'
         };
-      case 'yield_opportunity':
+      case NotificationType.SUCCESS:
         return { 
           icon: <div className="h-3 w-3 rounded-full bg-green-500" />,
           label: 'Yield Opportunity',
           color: 'bg-green-500/10 text-green-500'
         };
-      case 'system_update':
+      case NotificationType.SYSTEM:
         return { 
           icon: <div className="h-3 w-3 rounded-full bg-purple-500" />,
           label: 'System Update',

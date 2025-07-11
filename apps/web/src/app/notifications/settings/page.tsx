@@ -6,21 +6,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Bell, Loader2, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Separator } from '../../../components/ui/separator';
+import { Switch } from '../../../components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '../../../components/ui/radio-group';
+import { Label } from '../../../components/ui/label';
+import { useToast } from '../../../components/ui/use-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   NotificationPreferences,
   defaultNotificationPreferences,
   getNotificationPreferences,
   saveNotificationPreferences,
   requestNotificationPermission
-} from '@/services/notificationService';
+} from '../../../services/notificationService';
 
 // Form schema
 const notificationFormSchema = z.object({
@@ -126,11 +126,17 @@ export default function NotificationSettingsPage() {
       
       // Save preferences
       const preferences: NotificationPreferences = {
-        userId: user.id,
-        ...values,
+        emailEnabled: values.emailEnabled,
+        pushEnabled: values.pushEnabled,
+        emailFrequency: values.emailFrequency,
+        notifyOnPortfolioUpdates: values.notifyOnPortfolioUpdates,
+        notifyOnMarketAlerts: values.notifyOnMarketAlerts,
+        notifyOnRiskWarnings: values.notifyOnRiskWarnings,
+        notifyOnYieldOpportunities: values.notifyOnYieldOpportunities,
+        notifyOnSystemUpdates: values.notifyOnSystemUpdates
       };
       
-      const success = await saveNotificationPreferences(preferences);
+      const success = await saveNotificationPreferences(user.id, preferences);
       
       if (success) {
         toast({
