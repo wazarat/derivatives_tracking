@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PortfolioBuilder } from '@/components/portfolio/PortfolioBuilder';
-import { getPortfolioById, createEmptyPortfolio } from '@/services/portfolioService';
-import { fetchAssets } from '@/services/assetService';
+import { PortfolioBuilder } from '../../../components/portfolio/PortfolioBuilder';
+import { getPortfolioById, createEmptyPortfolio } from '../../../services/portfolioService';
+import { fetchAssets } from '../../../services/assetService';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 export default function EditPortfolioPage({
@@ -19,10 +19,13 @@ export default function EditPortfolioPage({
   const portfolioId = params.id;
   
   // Fetch all available assets
-  const { data: assets, isLoading: isLoadingAssets, error: assetsError } = useQuery({
+  const { data: assetsResponse, isLoading: isLoadingAssets, error: assetsError } = useQuery({
     queryKey: ['assets'],
     queryFn: () => fetchAssets(),
   });
+
+  // Extract the assets array from the response
+  const assets = assetsResponse?.data || [];
 
   // Get portfolio data
   const [portfolio, setPortfolio] = useState(null);
@@ -87,7 +90,7 @@ export default function EditPortfolioPage({
       </div>
 
       <PortfolioBuilder 
-        availableAssets={assets || []}
+        availableAssets={assets}
         initialPortfolio={portfolio}
         onSave={() => {
           router.push('/portfolios');

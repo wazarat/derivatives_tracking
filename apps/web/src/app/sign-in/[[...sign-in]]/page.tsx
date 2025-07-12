@@ -31,8 +31,7 @@ export default function Page() {
             routing="path"
             signUpUrl="/sign-up"
             afterSignInUrl="/dashboard"
-            // Enable specific authentication strategies
-            identityTypes={["email_address", "username", "google"]}
+            // Authentication strategies are configured in Clerk Dashboard
           />
         </div>
       </div>

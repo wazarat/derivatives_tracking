@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Frontend Next.js application
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.prod
+    image: canhav/web:latest
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+      - NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+      - NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+      - NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+      - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+      - NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
+      - NEXT_PUBLIC_CANNY_APP_ID=${NEXT_PUBLIC_CANNY_APP_ID}
+      - NEXT_PUBLIC_CANNY_BOARD_ID=${NEXT_PUBLIC_CANNY_BOARD_ID}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - canhav-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend FastAPI application
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.prod
+    image: canhav/api:latest
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - COINMARKETCAP_API_KEY=${COINMARKETCAP_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - ENABLE_DEX_WORKERS=${ENABLE_DEX_WORKERS}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER}
+      - SCHEDULER_INTERVAL_MINUTES=${SCHEDULER_INTERVAL_MINUTES}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_ADMIN=${EMAIL_ADMIN}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - ENABLE_ACCESS_LOG=${ENABLE_ACCESS_LOG}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - canhav-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ETL Worker for scheduled tasks
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.prod
+    image: canhav/worker:latest
+    restart: always
+    command: python -m app.worker
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - COINMARKETCAP_API_KEY=${COINMARKETCAP_API_KEY}
+      - ENABLE_DEX_WORKERS=${ENABLE_DEX_WORKERS}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=${LOG_LEVEL}
+    depends_on:
+      - api
+      - postgres
+    networks:
+      - canhav-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=canhav
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - canhav-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Nginx for SSL termination and reverse proxy
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - web
+      - api
+    networks:
+      - canhav-network
+
+networks:
+  canhav-network:
+    driver: bridge
+
+volumes:
+  postgres-data:

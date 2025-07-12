@@ -27,11 +27,14 @@ export default function PublicPortfolioPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all assets for portfolio display
-  const { data: assets, isLoading: isLoadingAssets } = useQuery({
+  // Fetch all available assets
+  const { data: assetsResponse, isLoading: isLoadingAssets, error: assetsError } = useQuery({
     queryKey: ['assets'],
     queryFn: () => fetchAssets(),
   });
+
+  // Extract the assets array from the response
+  const assets = assetsResponse?.data || [];
 
   // Load the public portfolio
   useEffect(() => {

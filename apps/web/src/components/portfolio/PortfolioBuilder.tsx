@@ -9,8 +9,9 @@ import {
   PointerSensor, 
   useSensor, 
   useSensors,
-  DragEndEvent,
-  DragStartEvent,
+  type DragEndEvent,
+  type DragStartEvent,
+  vent },
   DragOverlay
 } from '@dnd-kit/core';
 import { 

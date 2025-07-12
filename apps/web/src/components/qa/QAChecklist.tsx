@@ -8,17 +8,17 @@ import {
   CardFooter, 
   CardHeader, 
   CardTitle 
-} from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+} from '../../components/ui/card';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
+import { Button } from '../../components/ui/button';
 import { 
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
+} from '../../components/ui/accordion';
+import { Badge } from '../../components/ui/badge';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -27,7 +27,7 @@ import {
   Save, 
   RotateCcw 
 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Progress } from '../../components/ui/progress';
 
 interface QAItem {
   id: string;
@@ -60,7 +60,9 @@ export function QAChecklist({ initialItems = [], onSave, readOnly = false }: QAC
     
     // Initialize expanded categories
     if (initialItems.length > 0) {
-      const categories = [...new Set(initialItems.map(item => item.category))];
+      const categoriesSet = new Set<string>();
+      initialItems.forEach(item => categoriesSet.add(item.category));
+      const categories = Array.from(categoriesSet);
       setExpandedCategories(categories);
     }
   }, [initialItems]);

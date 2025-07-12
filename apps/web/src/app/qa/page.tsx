@@ -1,18 +1,28 @@
 'use client';
 
 import React from 'react';
-import { QAChecklist } from '@/components/qa/QAChecklist';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import { QAChecklist } from '../../components/qa/QAChecklist';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Separator } from '../../components/ui/separator';
+import { Button } from '../../components/ui/button';
 import { Download, FileText, Bug, Send } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '../../components/ui/label';
+import { useAuth } from '../../contexts/AuthContext';
+
+// Define QAItem interface to match the expected type in QAChecklist
+interface QAItem {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  status: 'passed' | 'failed' | 'warning' | 'pending';
+  priority: 'high' | 'medium' | 'low';
+  notes?: string;
+}
 
 // Define QA test cases for the CanHav MVP
-const qaItems = [
+const qaItems: QAItem[] = [
   // Core Functionality
   {
     id: 'core-1',
@@ -359,10 +369,10 @@ export default function QAPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="bug-description">Description</Label>
-                <Textarea 
+                <textarea 
                   id="bug-description" 
                   placeholder="Please provide detailed steps to reproduce the bug"
-                  className="min-h-[150px]"
+                  className="min-h-[150px] w-full p-2 border rounded-md"
                 />
               </div>
               

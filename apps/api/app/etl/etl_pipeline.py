@@ -1,9 +1,12 @@
 import logging
 import asyncio
+import os
 from typing import List, Dict, Any, Optional
 
-from app.workers.coingecko_worker import CoinGeckoWorker
 from app.workers.coinmarketcap_worker import CoinMarketCapWorker
+from app.workers.dydx_worker import DydxV4Worker
+from app.workers.hyperliquid_worker import HyperliquidRESTWorker
+from app.cache.memory_cache import InMemoryCache
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +19,16 @@ class ETLPipeline:
         """
         Initialize the ETL pipeline
         """
-        self.coingecko_worker = CoinGeckoWorker()
+        self.cache = InMemoryCache()
         self.coinmarketcap_worker = CoinMarketCapWorker()
+        
+        # DEX workers
+        self.dydx_worker = DydxV4Worker(self.cache)
+        self.hyperliquid_worker = HyperliquidRESTWorker()
+        
+        # Flag to enable/disable DEX workers
+        self.enable_dex_workers = os.getenv("ENABLE_DEX_WORKERS", "false").lower() == "true"
+        
         self.is_initialized = False
     
     async def setup(self):
@@ -28,8 +39,15 @@ class ETLPipeline:
             return
         
         # Set up workers
-        await self.coingecko_worker.setup()
         await self.coinmarketcap_worker.setup()
+        
+        # Set up DEX workers if enabled
+        if self.enable_dex_workers:
+            logger.info("DEX workers are enabled")
+            await self.dydx_worker.setup()
+            await self.hyperliquid_worker.setup()
+        else:
+            logger.info("DEX workers are disabled")
         
         self.is_initialized = True
         logger.info("ETL pipeline initialized")
@@ -43,16 +61,17 @@ class ETLPipeline:
         logger.info("Starting full ETL pipeline run")
         
         try:
-            # Run CoinGecko worker
-            logger.info("Running CoinGecko worker")
-            coingecko_success = await self.coingecko_worker.fetch_and_update()
-            
             # Run CoinMarketCap worker
             logger.info("Running CoinMarketCap worker")
             coinmarketcap_success = await self.coinmarketcap_worker.fetch_and_update()
             
+            # Run DEX workers if enabled
+            dex_success = True
+            if self.enable_dex_workers:
+                dex_success = await self.run_dex_workers()
+            
             # Log results
-            if coingecko_success and coinmarketcap_success:
+            if coinmarketcap_success and dex_success:
                 logger.info("Full ETL pipeline run completed successfully")
                 return True
             else:
@@ -63,28 +82,55 @@ class ETLPipeline:
             logger.error(f"Error running full ETL pipeline: {e}")
             return False
     
-    async def run_coingecko_pipeline(self):
+    async def run_dex_workers(self):
         """
-        Run only the CoinGecko part of the ETL pipeline
-        """
-        await self.setup()
+        Run DEX workers (dYdX and Hyperliquid)
         
-        logger.info("Starting CoinGecko ETL pipeline run")
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.enable_dex_workers:
+            logger.info("DEX workers are disabled, skipping")
+            return True
+            
+        logger.info("Running DEX workers")
+        success = True
         
         try:
-            # Run CoinGecko worker
-            success = await self.coingecko_worker.fetch_and_update()
+            # Start dYdX worker if not already running
+            if not self.dydx_worker.running:
+                logger.info("Starting dYdX worker")
+                await self.dydx_worker.start(markets=["BTC-USD", "ETH-USD", "SOL-USD"])
             
-            if success:
-                logger.info("CoinGecko ETL pipeline run completed successfully")
-            else:
-                logger.warning("CoinGecko ETL pipeline run failed")
+            # Run Hyperliquid worker
+            logger.info("Running Hyperliquid worker")
+            hyperliquid_data = await self.hyperliquid_worker.get_all_mids()
+            
+            # Process Hyperliquid data and store in cache
+            if hyperliquid_data:
+                # Store funding rates in cache
+                meta_data = await self.hyperliquid_worker.get_meta()
                 
-            return success
-                
+                if meta_data and "universe" in meta_data:
+                    for coin in meta_data["universe"]:
+                        try:
+                            symbol = coin.get("name")
+                            if not symbol:
+                                continue
+                                
+                            funding_data = await self.hyperliquid_worker.get_funding_data(symbol)
+                            if funding_data:
+                                await self.cache.set(f"hyperliquid:funding:{symbol}", funding_data, ttl=3600)
+                                logger.info(f"Cached Hyperliquid funding data for {coin}")
+                        except Exception as e:
+                            logger.error(f"Error fetching Hyperliquid funding data for {coin}: {e}")
+                            success = False
+            
         except Exception as e:
-            logger.error(f"Error running CoinGecko ETL pipeline: {e}")
-            return False
+            logger.error(f"Error running DEX workers: {e}")
+            success = False
+            
+        return success
     
     async def run_coinmarketcap_pipeline(self):
         """
@@ -109,42 +155,28 @@ class ETLPipeline:
             logger.error(f"Error running CoinMarketCap ETL pipeline: {e}")
             return False
     
-    async def get_top_cryptocurrencies(self, source: str = "coinmarketcap", limit: int = 100) -> List[Dict[str, Any]]:
+    async def get_top_cryptocurrencies(self, limit: int = 100) -> List[Dict[str, Any]]:
         """
-        Get top cryptocurrencies from the specified source
+        Get top cryptocurrencies
         
         Args:
-            source: Data source ("coinmarketcap" or "coingecko")
             limit: Number of cryptocurrencies to return
             
         Returns:
             List of cryptocurrency data
         """
         await self.setup()
-        
-        if source.lower() == "coinmarketcap":
-            return await self.coinmarketcap_worker.get_top_cryptocurrencies(limit)
-        else:
-            # Default to CoinGecko
-            return await self.coingecko_worker.get_top_coins(limit)
+        return await self.coinmarketcap_worker.get_top_cryptocurrencies(limit)
     
-    async def get_market_overview(self, source: str = "coinmarketcap") -> Dict[str, Any]:
+    async def get_market_overview(self) -> Dict[str, Any]:
         """
-        Get market overview data from the specified source
+        Get market overview data
         
-        Args:
-            source: Data source ("coinmarketcap" or "coingecko")
-            
         Returns:
             Dictionary containing market overview data
         """
         await self.setup()
-        
-        if source.lower() == "coinmarketcap":
-            return await self.coinmarketcap_worker.get_market_overview()
-        else:
-            # Default to CoinGecko
-            return await self.coingecko_worker.get_global_data()
+        return await self.coinmarketcap_worker.get_market_overview()
     
     async def close(self):
         """
@@ -153,6 +185,16 @@ class ETLPipeline:
         logger.info("Closing ETL pipeline")
         
         # Close workers
-        await self.coingecko_worker.close()
+        await self.coinmarketcap_worker.close()
+        
+        # Stop DEX workers if running
+        if self.enable_dex_workers:
+            if hasattr(self, 'dydx_worker') and self.dydx_worker.running:
+                await self.dydx_worker.stop()
+            
+            if hasattr(self, 'hyperliquid_worker'):
+                # Close Hyperliquid worker if it has a close method
+                if hasattr(self.hyperliquid_worker, 'close'):
+                    await self.hyperliquid_worker.close()
         
         logger.info("ETL pipeline closed")

@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import httpx
+import os
 
 from app.adapters.base import BaseAdapter
 from app.models import Sector, RiskTier
@@ -22,6 +23,12 @@ class CircleAdapter(BaseAdapter):
         self.default_headers = {
             "Content-Type": "application/json",
         }
+        self.cmc_api_key = os.environ.get("COINMARKETCAP_API_KEY")
+        self.cmc_base_url = "https://pro-api.coinmarketcap.com/v1"
+        self.cmc_headers = {
+            "X-CMC_PRO_API_KEY": self.cmc_api_key,
+            "Accept": "application/json"
+        }
     
     async def get_asset_data(self, asset_id: str = "usdc") -> Dict[str, Any]:
         """Get data for USDC.
@@ -32,14 +39,22 @@ class CircleAdapter(BaseAdapter):
         Returns:
             Dict containing USDC data in our standard format
         """
-        # Get market data from CoinGecko as Circle doesn't provide this directly
-        cg_url = "https://api.coingecko.com/api/v3/coins/usd-coin"
+        # Get market data from CoinMarketCap as Circle doesn't provide this directly
+        cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/latest"
         
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(cg_url, params={"tickers": "false"})
+                response = await client.get(
+                    cmc_url, 
+                    headers=self.cmc_headers,
+                    params={"symbol": "USDC", "convert": "USD"}
+                )
                 response.raise_for_status()
                 data = response.json()
+                
+                # Extract USDC data from response
+                usdc_data = data.get("data", {}).get("USDC", {})
+                quote = usdc_data.get("quote", {}).get("USD", {})
                 
             # Get circulating supply and market cap from Circle's API
             supply_data = await self._make_request(
@@ -62,12 +77,12 @@ class CircleAdapter(BaseAdapter):
                 "website": "https://www.circle.com/en/usdc",
                 "description": "USD Coin (USDC) is a fully regulated, fiat-collateralized stablecoin.",
                 "market_data": {
-                    "price_usd": data["market_data"].get("current_price", {}).get("usd"),
-                    "market_cap": data["market_data"].get("market_cap", {}).get("usd"),
-                    "circulating_supply": supply_data.get("amount"),
-                    "total_supply": supply_data.get("amount"),
-                    "price_change_24h": data["market_data"].get("price_change_24h"),
-                    "price_change_percentage_24h": data["market_data"].get("price_change_percentage_24h"),
+                    "price_usd": quote.get("price"),
+                    "market_cap": quote.get("market_cap"),
+                    "circulating_supply": supply_data.get("amount") or usdc_data.get("circulating_supply"),
+                    "total_supply": supply_data.get("amount") or usdc_data.get("total_supply"),
+                    "price_change_24h": quote.get("percent_change_24h"),
+                    "price_change_percentage_24h": quote.get("percent_change_24h"),
                 },
                 "reserves": reserve_data,
                 "last_updated": datetime.utcnow().isoformat()
@@ -113,41 +128,49 @@ class CircleAdapter(BaseAdapter):
         if end_date is None:
             end_date = datetime.utcnow()
             
-        # Convert to timestamps in milliseconds
-        from_timestamp = int(start_date.timestamp() * 1000)
-        to_timestamp = int(end_date.timestamp() * 1000)
+        # Convert to timestamps
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
         
         try:
-            # Get historical price data from CoinGecko
-            cg_url = "https://api.coingecko.com/api/v3/coins/usd-coin/market_chart/range"
+            # Get historical price data from CoinMarketCap
+            cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/historical"
             params = {
-                "vs_currency": "usd",
-                "from": from_timestamp // 1000,  # Convert to seconds
-                "to": to_timestamp // 1000,
+                "symbol": "USDC",
+                "time_start": start_str,
+                "time_end": end_str,
+                "count": 500,  # Maximum allowed by CMC
+                "interval": "daily",
+                "convert": "USD"
             }
             
             async with httpx.AsyncClient() as client:
-                response = await client.get(cg_url, params=params)
+                response = await client.get(cmc_url, headers=self.cmc_headers, params=params)
                 response.raise_for_status()
                 data = response.json()
             
             # Format the data into our standard metric format
             metrics = []
-            for timestamp, price in data.get("prices", []):
+            quotes = data.get("data", {}).get("quotes", [])
+            
+            for quote in quotes:
+                timestamp = quote.get("timestamp")
+                quote_data = quote.get("quote", {}).get("USD", {})
+                
+                # Add price data
                 metrics.append(self.to_metric_model({
                     "asset_id": "usdc",
                     "metric_type": "price_usd",
-                    "value": price,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("price"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
-            # Add volume data if available
-            for timestamp, volume in data.get("total_volumes", []):
+                # Add volume data if available
                 metrics.append(self.to_metric_model({
                     "asset_id": "usdc",
                     "metric_type": "volume_24h",
-                    "value": volume,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("volume_24h"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
             return metrics

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
 from app.models import User
 from app.services.email_service import email_service, EmailRecipient
-from app.workers.coingecko_worker import CoinGeckoWorker
+from app.workers.coinmarketcap_worker import CoinMarketCapWorker
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class EmailScheduler:
     
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
-        self.coingecko_worker = CoinGeckoWorker()
+        self.coinmarketcap_worker = CoinMarketCapWorker()
     
     def start(self):
         """Start the email scheduler"""
@@ -140,18 +140,17 @@ class EmailScheduler:
     async def send_weekly_news_emails(self):
         """Send weekly news emails to all subscribed users"""
         try:
-            # Get trending coins from CoinGecko
-            trending_coins = await self.coingecko_worker.fetch_trending()
+            # Get trending coins from CoinMarketCap
+            trending_coins = await self.coinmarketcap_worker.get_top_cryptocurrencies(limit=5)
             
             # Create news items from trending coins
             news_items = []
-            if trending_coins and 'coins' in trending_coins:
-                for coin in trending_coins['coins'][:5]:  # Top 5 trending coins
-                    item = coin.get('item', {})
+            if trending_coins:
+                for coin in trending_coins[:5]:  # Top 5 trending coins
                     news_items.append({
-                        'title': f"Trending: {item.get('name', 'Unknown')} ({item.get('symbol', 'N/A')})",
-                        'summary': f"{item.get('name', 'Unknown')} is trending on CoinGecko with a market cap rank of {item.get('market_cap_rank', 'N/A')}.",
-                        'url': f"https://www.coingecko.com/en/coins/{item.get('id', 'bitcoin')}"
+                        'title': f"Trending: {coin.get('name', 'Unknown')} ({coin.get('symbol', 'N/A')})",
+                        'summary': f"{coin.get('name', 'Unknown')} is trending on CoinMarketCap with a market cap rank of {coin.get('cmc_rank', 'N/A')}.",
+                        'url': f"https://coinmarketcap.com/currencies/{coin.get('slug', coin.get('symbol', 'bitcoin').lower())}"
                     })
             
             # Add some general market news

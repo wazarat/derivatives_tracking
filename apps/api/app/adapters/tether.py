@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import httpx
+import os
 
 from app.adapters.base import BaseAdapter
 from app.models import Sector, RiskTier
@@ -22,6 +23,12 @@ class TetherAdapter(BaseAdapter):
         self.default_headers = {
             "Content-Type": "application/json",
         }
+        self.cmc_api_key = os.environ.get("COINMARKETCAP_API_KEY")
+        self.cmc_base_url = "https://pro-api.coinmarketcap.com/v1"
+        self.cmc_headers = {
+            "X-CMC_PRO_API_KEY": self.cmc_api_key,
+            "Accept": "application/json"
+        }
     
     async def get_asset_data(self, asset_id: str = "usdt") -> Dict[str, Any]:
         """Get data for USDT.
@@ -32,15 +39,23 @@ class TetherAdapter(BaseAdapter):
         Returns:
             Dict containing USDT data in our standard format
         """
-        # Get market data from CoinGecko
-        cg_url = "https://api.coingecko.com/api/v3/coins/tether"
+        # Get market data from CoinMarketCap
+        cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/latest"
         
         try:
             async with httpx.AsyncClient() as client:
                 # Get market data
-                response = await client.get(cg_url, params={"tickers": "false"})
+                response = await client.get(
+                    cmc_url, 
+                    headers=self.cmc_headers,
+                    params={"symbol": "USDT", "convert": "USD"}
+                )
                 response.raise_for_status()
                 data = response.json()
+                
+                # Extract USDT data from response
+                usdt_data = data.get("data", {}).get("USDT", {})
+                quote = usdt_data.get("quote", {}).get("USD", {})
                 
                 # Get USDT supply data
                 supply_url = "https://api.tether.to/v1/market/current"
@@ -51,9 +66,9 @@ class TetherAdapter(BaseAdapter):
             reserve_data = await self._get_reserve_data()
             
             # Calculate market cap using circulating supply and price
-            circulating_supply = data["market_data"].get("circulating_supply")
-            price = data["market_data"].get("current_price", {}).get("usd", 1.0)
-            market_cap = circulating_supply * price if circulating_supply and price else None
+            circulating_supply = usdt_data.get("circulating_supply")
+            price = quote.get("price", 1.0)
+            market_cap = quote.get("market_cap") or (circulating_supply * price if circulating_supply and price else None)
             
             # Combine all data
             return self.to_asset_model({
@@ -69,9 +84,9 @@ class TetherAdapter(BaseAdapter):
                     "price_usd": price,
                     "market_cap": market_cap,
                     "circulating_supply": circulating_supply,
-                    "total_supply": data["market_data"].get("total_supply"),
-                    "price_change_24h": data["market_data"].get("price_change_24h"),
-                    "price_change_percentage_24h": data["market_data"].get("price_change_percentage_24h"),
+                    "total_supply": usdt_data.get("total_supply"),
+                    "price_change_24h": quote.get("percent_change_24h"),
+                    "price_change_percentage_24h": quote.get("percent_change_24h"),
                 },
                 "reserves": reserve_data,
                 "last_updated": datetime.utcnow().isoformat()
@@ -118,41 +133,49 @@ class TetherAdapter(BaseAdapter):
         if end_date is None:
             end_date = datetime.utcnow()
             
-        # Convert to timestamps in seconds
-        from_timestamp = int(start_date.timestamp())
-        to_timestamp = int(end_date.timestamp())
+        # Convert to timestamps
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
         
         try:
-            # Get historical price data from CoinGecko
-            cg_url = "https://api.coingecko.com/api/v3/coins/tether/market_chart/range"
+            # Get historical price data from CoinMarketCap
+            cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/historical"
             params = {
-                "vs_currency": "usd",
-                "from": from_timestamp,
-                "to": to_timestamp,
+                "symbol": "USDT",
+                "time_start": start_str,
+                "time_end": end_str,
+                "count": 500,  # Maximum allowed by CMC
+                "interval": "daily",
+                "convert": "USD"
             }
             
             async with httpx.AsyncClient() as client:
-                response = await client.get(cg_url, params=params)
+                response = await client.get(cmc_url, headers=self.cmc_headers, params=params)
                 response.raise_for_status()
                 data = response.json()
             
             # Format the data into our standard metric format
             metrics = []
-            for timestamp, price in data.get("prices", []):
+            quotes = data.get("data", {}).get("quotes", [])
+            
+            for quote in quotes:
+                timestamp = quote.get("timestamp")
+                quote_data = quote.get("quote", {}).get("USD", {})
+                
+                # Add price data
                 metrics.append(self.to_metric_model({
                     "asset_id": "usdt",
                     "metric_type": "price_usd",
-                    "value": price,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("price"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
-            # Add volume data if available
-            for timestamp, volume in data.get("total_volumes", []):
+                # Add volume data if available
                 metrics.append(self.to_metric_model({
                     "asset_id": "usdt",
                     "metric_type": "volume_24h",
-                    "value": volume,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("volume_24h"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
             return metrics

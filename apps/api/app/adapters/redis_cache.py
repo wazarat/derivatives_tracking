@@ -143,11 +143,11 @@ class RedisCache:
         Returns:
             Dictionary of key-value pairs (only for keys that exist)
         """
+        result = {}
         try:
             redis_client = await self._get_redis()
             values = await redis_client.mget(keys)
             
-            result = {}
             for key, value in zip(keys, values):
                 if value:
                     result[key] = json.loads(value)
@@ -155,7 +155,7 @@ class RedisCache:
             return result
         except Exception as e:
             logger.error(f"Failed to get multiple cache keys: {e}")
-            return {}
+            return result
     
     async def exists(self, key: str) -> bool:
         """
@@ -169,7 +169,7 @@ class RedisCache:
         """
         try:
             redis_client = await self._get_redis()
-            return bool(await redis_client.exists(key))
+            return await redis_client.exists(key) > 0
         except Exception as e:
             logger.error(f"Failed to check if key {key} exists: {e}")
             return False
@@ -194,114 +194,122 @@ class RedisCache:
     
     # Cryptocurrency specific methods
     
-    async def get_coins_markets(self, vs_currency: str = "usd", page: int = 1) -> Optional[List[Dict]]:
+    async def get_listings_latest(self, convert: str = "USD", limit: int = 100) -> Optional[Dict]:
         """
-        Get cached coins market data
+        Get cached listings latest data
         
         Args:
-            vs_currency: The target currency (e.g., usd, eur)
-            page: Page number
+            convert: The target currency (e.g., USD, EUR)
+            limit: Number of results to return
             
         Returns:
-            Cached coins market data or None
+            Cached listings data or None
         """
-        key = f"coingecko:markets:{vs_currency}:page:{page}"
+        key = f"coinmarketcap:listings:{convert}:{limit}"
         return await self.get(key)
     
-    async def set_coins_markets(self, data: List[Dict], vs_currency: str = "usd", page: int = 1) -> bool:
+    async def set_listings_latest(self, data: Dict, convert: str = "USD", limit: int = 100) -> bool:
         """
-        Cache coins market data
+        Cache listings latest data
         
         Args:
-            data: Coins market data
-            vs_currency: The target currency (e.g., usd, eur)
-            page: Page number
+            data: Listings data
+            convert: The target currency (e.g., USD, EUR)
+            limit: Number of results
             
         Returns:
             True if successful
         """
-        key = f"coingecko:markets:{vs_currency}:page:{page}"
+        key = f"coinmarketcap:listings:{convert}:{limit}"
         # Cache for 5 minutes (300 seconds)
         return await self.set(key, data, 300)
     
-    async def get_coin_data(self, coin_id: str) -> Optional[Dict]:
+    async def get_quotes_latest(self, symbol: str, convert: str = "USD") -> Optional[Dict]:
         """
-        Get cached coin data
+        Get cached quotes latest data
         
         Args:
-            coin_id: Coin ID (e.g., bitcoin, ethereum)
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            convert: The target currency (e.g., USD, EUR)
             
         Returns:
-            Cached coin data or None
+            Cached quotes data or None
         """
-        key = f"coingecko:coin:{coin_id}"
+        key = f"coinmarketcap:quotes:{symbol}:{convert}"
         return await self.get(key)
     
-    async def set_coin_data(self, coin_id: str, data: Dict) -> bool:
+    async def set_quotes_latest(self, data: Dict, symbol: str, convert: str = "USD") -> bool:
         """
-        Cache coin data
+        Cache quotes latest data
         
         Args:
-            coin_id: Coin ID (e.g., bitcoin, ethereum)
-            data: Coin data
+            data: Quotes data
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            convert: The target currency (e.g., USD, EUR)
             
         Returns:
             True if successful
         """
-        key = f"coingecko:coin:{coin_id}"
+        key = f"coinmarketcap:quotes:{symbol}:{convert}"
         # Cache for 5 minutes (300 seconds)
         return await self.set(key, data, 300)
     
-    async def get_coin_history(self, coin_id: str, days: Union[int, str]) -> Optional[Dict]:
+    async def get_historical_quotes(self, symbol: str, time_period: str, convert: str = "USD") -> Optional[Dict]:
         """
-        Get cached coin history data
+        Get cached historical quotes data
         
         Args:
-            coin_id: Coin ID (e.g., bitcoin, ethereum)
-            days: Number of days (1, 7, 14, 30, 90, 180, 365, max)
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            time_period: Time period (e.g., 1d, 7d, 30d)
+            convert: The target currency (e.g., USD, EUR)
             
         Returns:
-            Cached coin history data or None
+            Cached historical quotes data or None
         """
-        key = f"coingecko:history:{coin_id}:{days}"
+        key = f"coinmarketcap:historical:{symbol}:{time_period}:{convert}"
         return await self.get(key)
     
-    async def set_coin_history(self, coin_id: str, days: Union[int, str], data: Dict) -> bool:
+    async def set_historical_quotes(self, data: Dict, symbol: str, time_period: str, convert: str = "USD") -> bool:
         """
-        Cache coin history data
+        Cache historical quotes data
         
         Args:
-            coin_id: Coin ID (e.g., bitcoin, ethereum)
-            days: Number of days (1, 7, 14, 30, 90, 180, 365, max)
-            data: Coin history data
+            data: Historical quotes data
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            time_period: Time period (e.g., 1d, 7d, 30d)
+            convert: The target currency (e.g., USD, EUR)
             
         Returns:
             True if successful
         """
-        key = f"coingecko:history:{coin_id}:{days}"
+        key = f"coinmarketcap:historical:{symbol}:{time_period}:{convert}"
         # Cache longer for historical data (1 hour = 3600 seconds)
         return await self.set(key, data, 3600)
     
-    async def get_global_data(self) -> Optional[Dict]:
+    async def get_global_metrics(self, convert: str = "USD") -> Optional[Dict]:
         """
-        Get cached global cryptocurrency data
-        
-        Returns:
-            Cached global data or None
-        """
-        key = "coingecko:global"
-        return await self.get(key)
-    
-    async def set_global_data(self, data: Dict) -> bool:
-        """
-        Cache global cryptocurrency data
+        Get cached global cryptocurrency metrics
         
         Args:
-            data: Global cryptocurrency data
+            convert: The target currency (e.g., USD, EUR)
+            
+        Returns:
+            Cached global metrics or None
+        """
+        key = f"coinmarketcap:global:{convert}"
+        return await self.get(key)
+    
+    async def set_global_metrics(self, data: Dict, convert: str = "USD") -> bool:
+        """
+        Cache global cryptocurrency metrics
+        
+        Args:
+            data: Global cryptocurrency metrics
+            convert: The target currency (e.g., USD, EUR)
             
         Returns:
             True if successful
         """
-        key = "coingecko:global"
+        key = f"coinmarketcap:global:{convert}"
         # Cache for 15 minutes (900 seconds)
         return await self.set(key, data, 900)

@@ -147,8 +147,7 @@ export default function TrendingPage() {
         console.error('Error loading trending portfolios:', error);
         toast({
           title: 'Error loading portfolios',
-          description: 'There was a problem loading trending portfolios',
-          variant: 'destructive',
+          description: 'There was a problem loading trending portfolios'
         });
       } finally {
         setIsLoading(false);

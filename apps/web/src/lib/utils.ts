@@ -1,8 +1,12 @@
+import { ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
 /**
- * Tailwind-style class-join helper (used throughout the UI)
+ * Combines multiple class names using clsx and optimizes them with tailwind-merge
+ * This allows for conditional classes and prevents duplicate utility classes
  */
-export function cn(...classes: (string | undefined | false | null)[]) {
-  return classes.filter(Boolean).join(' ');
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
 }
 
 /**

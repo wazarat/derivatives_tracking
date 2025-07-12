@@ -8,7 +8,12 @@ export enum NotificationType {
   SYSTEM = 'system',
   PRICE_ALERT = 'price_alert',
   PORTFOLIO = 'portfolio',
-  SECURITY = 'security'
+  SECURITY = 'security',
+  PORTFOLIO_UPDATE = 'portfolio_update',
+  MARKET_ALERT = 'market_alert',
+  RISK_WARNING = 'risk_warning',
+  YIELD_OPPORTUNITY = 'yield_opportunity',
+  SYSTEM_UPDATE = 'system_update',
 }
 
 export interface Notification {

@@ -16,11 +16,12 @@ services:
       - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
-      - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+      - COINMARKETCAP_API_KEY=${COINMARKETCAP_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ENABLE_DEX_WORKERS=${ENABLE_DEX_WORKERS:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -93,9 +94,10 @@ services:
       - SUPABASE_DATABASE_URL=${SUPABASE_DATABASE_URL}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
-      - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+      - COINMARKETCAP_API_KEY=${COINMARKETCAP_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ENABLE_DEX_WORKERS=${ENABLE_DEX_WORKERS:-true}
     depends_on:
       postgres:
         condition: service_healthy

@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PortfolioBuilder } from '@/components/portfolio/PortfolioBuilder';
-import { getPortfolioById, createEmptyPortfolio } from '@/services/portfolioService';
-import { getPortfolioFromSupabase } from '@/services/supabasePortfolioService';
-import { fetchAssets } from '@/services/assetService';
+import { PortfolioBuilder } from '../../components/portfolio/PortfolioBuilder';
+import { getPortfolioById, createEmptyPortfolio } from '../../services/portfolioService';
+import { getPortfolioFromSupabase } from '../../services/supabasePortfolioService';
+import { fetchAssets } from '../../services/assetService';
 import { Loader2, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../components/ui/button';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '../../components/ui/use-toast';
+import { Asset } from '@/types/assets';
 
 export default function PortfolioPage({
   params
@@ -24,10 +25,13 @@ export default function PortfolioPage({
   const { user } = useAuth();
   
   // Fetch all available assets
-  const { data: assets, isLoading: isLoadingAssets, error: assetsError } = useQuery({
+  const { data: assetsResponse, isLoading: isLoadingAssets, error: assetsError } = useQuery({
     queryKey: ['assets'],
     queryFn: () => fetchAssets(),
   });
+
+  // Extract the assets array from the response
+  const assets = assetsResponse?.data || [];
 
   // Get initial portfolio data if editing an existing portfolio
   const [initialPortfolio, setInitialPortfolio] = useState(createEmptyPortfolio());
@@ -42,15 +46,14 @@ export default function PortfolioPage({
         let portfolio = null;
         
         // Try to load from Supabase first if user is logged in
-        if (user && assets) {
+        if (user && assets.length > 0) {
           portfolio = await getPortfolioFromSupabase(portfolioId, assets);
           
           // Check if this portfolio belongs to the current user
           if (portfolio && portfolio.userId !== user.id) {
             toast({
               title: "Access denied",
-              description: "You don't have permission to edit this portfolio",
-              variant: "destructive"
+              description: "You don't have permission to edit this portfolio"
             });
             router.push('/portfolios');
             return;
@@ -67,8 +70,7 @@ export default function PortfolioPage({
         } else {
           toast({
             title: "Portfolio not found",
-            description: "The requested portfolio could not be found",
-            variant: "destructive"
+            description: "The requested portfolio could not be found"
           });
           router.push('/portfolios');
         }
@@ -76,15 +78,14 @@ export default function PortfolioPage({
         console.error("Error loading portfolio:", error);
         toast({
           title: "Error loading portfolio",
-          description: "There was a problem loading the portfolio",
-          variant: "destructive"
+          description: "There was a problem loading the portfolio"
         });
       } finally {
         setIsLoadingPortfolio(false);
       }
     };
     
-    if (portfolioId && assets) {
+    if (portfolioId && assets.length > 0) {
       loadPortfolio();
     }
   }, [portfolioId, user, assets, router, toast]);
@@ -132,7 +133,7 @@ export default function PortfolioPage({
       </div>
 
       <PortfolioBuilder
-        availableAssets={assets || []}
+        availableAssets={assets}
         initialPortfolio={initialPortfolio}
         onSave={(savedPortfolio) => {
           // After successful save, redirect to portfolios list

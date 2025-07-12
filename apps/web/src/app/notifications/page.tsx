@@ -43,8 +43,7 @@ export default function NotificationsPage() {
         console.error('Error loading notifications:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load notifications',
-          variant: 'destructive',
+          description: 'Failed to load notifications'
         });
       } finally {
         setIsLoading(false);
@@ -87,15 +86,14 @@ export default function NotificationsPage() {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         toast({
           title: 'All notifications marked as read',
-          description: 'Your notifications have been updated',
+          description: 'Your notifications have been updated'
         });
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       toast({
         title: 'Error',
-        description: 'Failed to mark notifications as read',
-        variant: 'destructive',
+        description: 'Failed to mark notifications as read'
       });
     } finally {
       setIsMarkingAllRead(false);

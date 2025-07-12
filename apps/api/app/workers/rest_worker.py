@@ -2,6 +2,7 @@ import logging
 import asyncio
 import httpx
 from typing import Dict, Any, Optional, Union, List
+import random
 
 from app.utils.rate_limiter import rate_limiter
 
@@ -58,16 +59,80 @@ class RESTWorker:
         if headers:
             request_headers.update(headers)
         
-        # Make the request
-        response = await self.client.request(
-            method=method,
-            url=url,
-            params=params,
-            json=json_data,
-            headers=request_headers
+        # Define retry status codes
+        retry_status_codes = {429, 500, 502, 503, 504}
+        max_retries = 5
+        retry_count = 0
+        
+        while True:
+            try:
+                # Make the request
+                response = await self.client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json_data,
+                    headers=request_headers
+                )
+                
+                # Check if we need to retry based on status code
+                if response.status_code in retry_status_codes and retry_count < max_retries:
+                    retry_count += 1
+                    delay = self._calculate_backoff_delay(retry_count)
+                    logger.warning(
+                        f"{self.service_name} request to {url} returned status {response.status_code}, "
+                        f"retrying in {delay:.2f}s (attempt {retry_count}/{max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                
+                return response
+                
+            except httpx.RequestError as e:
+                # Handle network-related errors
+                if retry_count < max_retries:
+                    retry_count += 1
+                    delay = self._calculate_backoff_delay(retry_count)
+                    logger.warning(
+                        f"{self.service_name} request to {url} failed with {type(e).__name__}: {str(e)}, "
+                        f"retrying in {delay:.2f}s (attempt {retry_count}/{max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(
+                        f"{self.service_name} request to {url} failed after {max_retries} retries: {str(e)}"
+                    )
+                    raise
+    
+    def _calculate_backoff_delay(self, attempt: int) -> float:
+        """
+        Calculate delay for retry attempt using exponential back-off with jitter
+        
+        Args:
+            attempt: The current retry attempt number (1-based)
+            
+        Returns:
+            Delay in seconds
+        """
+        # Base delay of 1 second
+        base_delay = 1.0
+        # Maximum delay of 60 seconds
+        max_delay = 60.0
+        # Jitter factor (25%)
+        jitter = 0.25
+        
+        # Calculate exponential back-off
+        delay = min(
+            max_delay,
+            base_delay * (2 ** (attempt - 1))
         )
         
-        return response
+        # Add random jitter
+        jitter_amount = delay * jitter
+        delay = delay + random.uniform(-jitter_amount, jitter_amount)
+        
+        # Ensure delay is positive
+        return max(0.1, delay)
     
     @rate_limiter.with_retry("default")
     async def get(
@@ -121,71 +186,92 @@ class RESTWorker:
         response.raise_for_status()
         return response.json()
 
-class CoinGeckoRESTWorker(RESTWorker):
-    """CoinGecko REST API worker with rate limiting"""
+class CoinMarketCapRESTWorker(RESTWorker):
+    """CoinMarketCap REST API worker with rate limiting"""
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize the CoinGecko REST worker
+        Initialize the CoinMarketCap REST worker
         
         Args:
-            api_key: Optional CoinGecko API key
+            api_key: CoinMarketCap API key (required)
         """
-        headers = {}
-        if api_key:
-            headers["X-CoinGecko-Api-Key"] = api_key
-            
+        headers = {"X-CMC_PRO_API_KEY": api_key} if api_key else {}
+        
         super().__init__(
-            service_name="coingecko",
-            base_url="https://api.coingecko.com/api/v3",
+            service_name="coinmarketcap",
+            base_url="https://pro-api.coinmarketcap.com/v1",
             headers=headers
         )
+        
+        if not api_key:
+            logger.warning("No CoinMarketCap API key provided, requests will likely fail")
     
-    @rate_limiter.with_retry("coingecko")
-    async def get_coins_markets(self, vs_currency: str = "usd", **params) -> List[Dict[str, Any]]:
+    @rate_limiter.with_retry("coinmarketcap")
+    async def get_listings_latest(self, **params) -> Dict[str, Any]:
         """
-        Get cryptocurrency prices, market cap, volume, and market related data
+        Get latest listings of all cryptocurrencies
         
         Args:
-            vs_currency: The target currency of market data (usd, eur, jpy, etc.)
-            **params: Additional parameters
+            **params: Additional parameters (start, limit, convert, etc.)
             
         Returns:
-            List of coin market data
+            Latest listings data
         """
-        endpoint = "/coins/markets"
+        endpoint = "/cryptocurrency/listings/latest"
+        return await self.get(endpoint, params=params)
+    
+    @rate_limiter.with_retry("coinmarketcap")
+    async def get_quotes_latest(self, symbol: str, **params) -> Dict[str, Any]:
+        """
+        Get latest quotes for a specific cryptocurrency
+        
+        Args:
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            **params: Additional parameters (convert, etc.)
+            
+        Returns:
+            Latest quotes data
+        """
+        endpoint = "/cryptocurrency/quotes/latest"
         params = {
-            "vs_currency": vs_currency,
+            "symbol": symbol,
             **params
         }
-        
         return await self.get(endpoint, params=params)
     
-    @rate_limiter.with_retry("coingecko")
-    async def get_coin_by_id(self, coin_id: str, **params) -> Dict[str, Any]:
+    @rate_limiter.with_retry("coinmarketcap")
+    async def get_global_metrics(self, **params) -> Dict[str, Any]:
         """
-        Get current data for a coin
+        Get global cryptocurrency market metrics
         
         Args:
-            coin_id: Pass the coin id (e.g. bitcoin)
-            **params: Additional parameters
+            **params: Additional parameters (convert, etc.)
             
         Returns:
-            Coin data
+            Global metrics data
         """
-        endpoint = f"/coins/{coin_id}"
+        endpoint = "/global-metrics/quotes/latest"
         return await self.get(endpoint, params=params)
     
-    @rate_limiter.with_retry("coingecko")
-    async def get_trending(self) -> Dict[str, Any]:
+    @rate_limiter.with_retry("coinmarketcap")
+    async def get_historical_quotes(self, symbol: str, **params) -> Dict[str, Any]:
         """
-        Get trending search coins (top-7) on CoinGecko in the last 24 hours
+        Get historical quotes for a specific cryptocurrency
         
+        Args:
+            symbol: Cryptocurrency symbol (e.g., BTC)
+            **params: Additional parameters (time_start, time_end, interval, etc.)
+            
         Returns:
-            Trending coins data
+            Historical quotes data
         """
-        endpoint = "/search/trending"
-        return await self.get(endpoint)
+        endpoint = "/cryptocurrency/quotes/historical"
+        params = {
+            "symbol": symbol,
+            **params
+        }
+        return await self.get(endpoint, params=params)
 
 class HyperliquidRESTWorker(RESTWorker):
     """Hyperliquid REST API worker with rate limiting"""

@@ -91,8 +91,7 @@ export default function NotificationSettingsPage() {
         console.error('Error loading notification preferences:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load notification preferences',
-          variant: 'destructive',
+          description: 'Failed to load notification preferences'
         });
       } finally {
         setIsLoading(false);
@@ -116,8 +115,7 @@ export default function NotificationSettingsPage() {
           setPushPermission('denied');
           toast({
             title: 'Permission denied',
-            description: 'Push notifications have been disabled as permission was denied',
-            variant: 'destructive',
+            description: 'Push notifications have been disabled as permission was denied'
           });
         } else {
           setPushPermission('granted');
@@ -141,7 +139,7 @@ export default function NotificationSettingsPage() {
       if (success) {
         toast({
           title: 'Preferences saved',
-          description: 'Your notification preferences have been updated',
+          description: 'Your notification preferences have been updated'
         });
       } else {
         throw new Error('Failed to save preferences');
@@ -150,8 +148,7 @@ export default function NotificationSettingsPage() {
       console.error('Error saving notification preferences:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save notification preferences',
-        variant: 'destructive',
+        description: 'Failed to save notification preferences'
       });
     } finally {
       setIsSaving(false);

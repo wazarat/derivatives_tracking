@@ -195,7 +195,7 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 # Pre-configure common API services
-rate_limiter.configure_limit("coingecko", calls_per_minute=50)  # CoinGecko free tier: 50/min
+rate_limiter.configure_limit("coinmarketcap", calls_per_minute=30)  # CoinMarketCap Basic tier: 30/min
 rate_limiter.configure_limit("dydx", calls_per_minute=100)      # dYdX: 100/min
 rate_limiter.configure_limit("hyperliquid", calls_per_minute=60)  # Hyperliquid: estimated
 rate_limiter.configure_limit("coinbase", calls_per_minute=30)   # Coinbase: conservative limit

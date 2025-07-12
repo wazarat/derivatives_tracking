@@ -101,9 +101,14 @@ class SupabaseCache:
                 return None
             
             # Return the value
-            return json.loads(item["value"])
+            value_str = item.get("value")
+            if value_str:
+                return json.loads(value_str)
+            
+            return None
+            
         except Exception as e:
-            logger.error(f"Error getting cache key {key}: {e}")
+            logger.error(f"Error getting cache value for key '{key}': {e}")
             return None
     
     async def set(self, key: str, value: Any, expiry_seconds: Optional[int] = None) -> bool:
@@ -122,9 +127,9 @@ class SupabaseCache:
             # Convert value to JSON string
             value_str = json.dumps(value)
             
-            # Calculate expiry time
+            # Calculate expiry timestamp if provided
             expiry = None
-            if expiry_seconds:
+            if expiry_seconds is not None:
                 expiry = (datetime.utcnow() + timedelta(seconds=expiry_seconds)).isoformat()
             
             # Upsert the value
@@ -136,8 +141,9 @@ class SupabaseCache:
             }).execute()
             
             return True
+            
         except Exception as e:
-            logger.error(f"Error setting cache key {key}: {e}")
+            logger.error(f"Error setting cache value for key '{key}': {e}")
             return False
     
     async def delete(self, key: str) -> bool:
@@ -151,14 +157,10 @@ class SupabaseCache:
             True if successful, False otherwise
         """
         try:
-            self.client.table(self.table_name) \
-                .delete() \
-                .eq("key", key) \
-                .execute()
-            
+            self.client.table(self.table_name).delete().eq("key", key).execute()
             return True
         except Exception as e:
-            logger.error(f"Error deleting cache key {key}: {e}")
+            logger.error(f"Error deleting cache value for key '{key}': {e}")
             return False
     
     async def exists(self, key: str) -> bool:
@@ -179,7 +181,7 @@ class SupabaseCache:
             
             return len(response.data) > 0
         except Exception as e:
-            logger.error(f"Error checking if cache key {key} exists: {e}")
+            logger.error(f"Error checking if key '{key}' exists in cache: {e}")
             return False
     
     async def ttl(self, key: str) -> Optional[int]:
@@ -201,19 +203,23 @@ class SupabaseCache:
             if not response.data:
                 return None
             
-            expiry_str = response.data[0].get("expiry")
-            if not expiry_str:
+            expiry = response.data[0].get("expiry")
+            if not expiry:
                 return None
             
-            expiry = datetime.fromisoformat(expiry_str)
+            # Calculate remaining time
+            expiry_dt = datetime.fromisoformat(expiry)
             now = datetime.utcnow()
             
-            if expiry <= now:
+            if expiry_dt <= now:
+                # Already expired
                 return 0
             
-            return int((expiry - now).total_seconds())
+            # Return remaining seconds
+            return int((expiry_dt - now).total_seconds())
+            
         except Exception as e:
-            logger.error(f"Error getting TTL for cache key {key}: {e}")
+            logger.error(f"Error getting TTL for key '{key}': {e}")
             return None
     
     async def clear(self) -> bool:
@@ -224,7 +230,8 @@ class SupabaseCache:
             True if successful, False otherwise
         """
         try:
-            self.client.table(self.table_name).delete().neq("key", "dummy_key").execute()
+            # Delete all rows
+            self.client.table(self.table_name).delete().neq("key", "impossible_key").execute()
             return True
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
@@ -232,63 +239,77 @@ class SupabaseCache:
     
     async def close(self):
         """Close the Supabase client"""
-        # Supabase client doesn't need explicit closing
+        # Nothing to do for Supabase client
         pass
     
-    # Specialized methods for CoinGecko data
+    # Specialized methods for CoinMarketCap data
     
-    def _get_coins_markets_cache_key(self, vs_currency: str, page: int) -> str:
-        """Get cache key for coins markets data"""
-        return f"coingecko:markets:{vs_currency}:{page}"
+    def _get_listings_latest_cache_key(self, convert: str, limit: int) -> str:
+        """Get cache key for listings latest data"""
+        return f"coinmarketcap:listings:{convert}:{limit}"
     
-    def _get_coin_cache_key(self, coin_id: str) -> str:
-        """Get cache key for coin data"""
-        return f"coingecko:coin:{coin_id}"
+    def _get_quotes_latest_cache_key(self, symbol: str, convert: str) -> str:
+        """Get cache key for quotes latest data"""
+        return f"coinmarketcap:quotes:{symbol}:{convert}"
     
-    def _get_coin_history_cache_key(self, coin_id: str, vs_currency: str, days: Union[int, str]) -> str:
-        """Get cache key for coin history data"""
-        return f"coingecko:history:{coin_id}:{vs_currency}:{days}"
+    def _get_historical_quotes_cache_key(self, symbol: str, time_period: str, convert: str) -> str:
+        """Get cache key for historical quotes data"""
+        return f"coinmarketcap:historical:{symbol}:{time_period}:{convert}"
     
-    def _get_global_data_cache_key(self) -> str:
-        """Get cache key for global data"""
-        return "coingecko:global"
+    def _get_global_metrics_cache_key(self, convert: str) -> str:
+        """Get cache key for global metrics data"""
+        return f"coinmarketcap:global:{convert}"
     
-    async def get_coins_markets(self, vs_currency: str, page: int) -> Optional[List[Dict]]:
-        """Get cached coins markets data"""
-        key = self._get_coins_markets_cache_key(vs_currency, page)
+    def _get_coin_details_cache_key(self, symbol: str, convert: str) -> str:
+        """Get cache key for coin details data"""
+        return f"coinmarketcap:details:{symbol}:{convert}"
+    
+    async def get_listings_latest(self, convert: str, limit: int) -> Optional[Dict]:
+        """Get cached listings latest data"""
+        key = self._get_listings_latest_cache_key(convert, limit)
         return await self.get(key)
     
-    async def set_coins_markets(self, vs_currency: str, page: int, data: List[Dict], expiry_seconds: int = 300) -> bool:
-        """Cache coins markets data"""
-        key = self._get_coins_markets_cache_key(vs_currency, page)
+    async def set_listings_latest(self, data: Dict, convert: str, limit: int, expiry_seconds: int = 300) -> bool:
+        """Cache listings latest data"""
+        key = self._get_listings_latest_cache_key(convert, limit)
         return await self.set(key, data, expiry_seconds)
     
-    async def get_coin(self, coin_id: str) -> Optional[Dict]:
-        """Get cached coin data"""
-        key = self._get_coin_cache_key(coin_id)
+    async def get_quotes_latest(self, symbol: str, convert: str) -> Optional[Dict]:
+        """Get cached quotes latest data"""
+        key = self._get_quotes_latest_cache_key(symbol, convert)
         return await self.get(key)
     
-    async def set_coin(self, coin_id: str, data: Dict, expiry_seconds: int = 300) -> bool:
-        """Cache coin data"""
-        key = self._get_coin_cache_key(coin_id)
+    async def set_quotes_latest(self, data: Dict, symbol: str, convert: str, expiry_seconds: int = 300) -> bool:
+        """Cache quotes latest data"""
+        key = self._get_quotes_latest_cache_key(symbol, convert)
         return await self.set(key, data, expiry_seconds)
     
-    async def get_coin_history(self, coin_id: str, vs_currency: str, days: Union[int, str]) -> Optional[Dict]:
-        """Get cached coin history data"""
-        key = self._get_coin_history_cache_key(coin_id, vs_currency, days)
+    async def get_historical_quotes(self, symbol: str, time_period: str, convert: str) -> Optional[Dict]:
+        """Get cached historical quotes data"""
+        key = self._get_historical_quotes_cache_key(symbol, time_period, convert)
         return await self.get(key)
     
-    async def set_coin_history(self, coin_id: str, vs_currency: str, days: Union[int, str], data: Dict, expiry_seconds: int = 3600) -> bool:
-        """Cache coin history data"""
-        key = self._get_coin_history_cache_key(coin_id, vs_currency, days)
+    async def set_historical_quotes(self, data: Dict, symbol: str, time_period: str, convert: str, expiry_seconds: int = 3600) -> bool:
+        """Cache historical quotes data"""
+        key = self._get_historical_quotes_cache_key(symbol, time_period, convert)
         return await self.set(key, data, expiry_seconds)
     
-    async def get_global_data(self) -> Optional[Dict]:
-        """Get cached global data"""
-        key = self._get_global_data_cache_key()
+    async def get_global_metrics(self, convert: str) -> Optional[Dict]:
+        """Get cached global metrics data"""
+        key = self._get_global_metrics_cache_key(convert)
         return await self.get(key)
     
-    async def set_global_data(self, data: Dict, expiry_seconds: int = 900) -> bool:
-        """Cache global data"""
-        key = self._get_global_data_cache_key()
+    async def set_global_metrics(self, data: Dict, convert: str, expiry_seconds: int = 900) -> bool:
+        """Cache global metrics data"""
+        key = self._get_global_metrics_cache_key(convert)
+        return await self.set(key, data, expiry_seconds)
+    
+    async def get_coin_details(self, symbol: str, convert: str) -> Optional[Dict]:
+        """Get cached coin details data"""
+        key = self._get_coin_details_cache_key(symbol, convert)
+        return await self.get(key)
+    
+    async def set_coin_details(self, data: Dict, symbol: str, convert: str, expiry_seconds: int = 3600) -> bool:
+        """Cache coin details data"""
+        key = self._get_coin_details_cache_key(symbol, convert)
         return await self.set(key, data, expiry_seconds)

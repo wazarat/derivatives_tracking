@@ -10,7 +10,7 @@ import os
 from ..schemas import CryptoMetric, MarketOverview, MarketMetrics
 from .. import schemas
 from ..database import get_async_db
-from ..cache.supabase_cache import SupabaseCache, get_supabase_cache
+from ..adapters.supabase_cache import SupabaseCache, get_supabase_cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -185,33 +185,38 @@ async def get_dashboard_metrics(
     Get cryptocurrency metrics for the dashboard
     """
     try:
-        # Initialize ETL pipeline
-        etl_pipeline = ETLPipeline()
+        # Get pipeline
+        pipeline = ETLPipeline()
+        await pipeline.setup()
         
-        # Get top cryptocurrencies from CoinMarketCap
-        cryptocurrencies = await etl_pipeline.get_top_cryptocurrencies(
-            source="coinmarketcap", 
-            limit=limit
-        )
+        # Get top cryptocurrencies
+        cryptocurrencies = await pipeline.get_top_cryptocurrencies(limit=limit)
         
-        # Format the response
+        if not cryptocurrencies:
+            raise HTTPException(status_code=404, detail="No cryptocurrency data found")
+        
+        # Convert to response model
         metrics = []
         for crypto in cryptocurrencies:
-            metrics.append(CryptoMetric(
-                id=crypto.get("id"),
-                name=crypto.get("name"),
-                symbol=crypto.get("symbol"),
-                price=crypto.get("price"),
-                percent_change_24h=crypto.get("percent_change_24h"),
-                volume_24h=crypto.get("volume_24h"),
-                market_cap=crypto.get("market_cap"),
-                last_updated=crypto.get("last_updated")
-            ))
+            metrics.append(
+                CryptoMetric(
+                    symbol=crypto.get("symbol", ""),
+                    name=crypto.get("name", ""),
+                    price=crypto.get("price", 0.0),
+                    price_change_percentage_24h=crypto.get("price_change_percentage_24h", 0.0),
+                    market_cap=crypto.get("market_cap", 0.0),
+                    volume_24h=crypto.get("volume_24h", 0.0),
+                    circulating_supply=crypto.get("circulating_supply", 0.0),
+                    total_supply=crypto.get("total_supply", 0.0),
+                    max_supply=crypto.get("max_supply", 0.0),
+                    last_updated=crypto.get("last_updated", "")
+                )
+            )
         
         return metrics
     except Exception as e:
-        logger.error(f"Error getting dashboard metrics: {e}")
-        raise HTTPException(status_code=500, detail=f"Error getting dashboard metrics: {str(e)}")
+        logger.error(f"Error fetching dashboard metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching dashboard metrics: {str(e)}")
 
 @router.get("/market-overview", response_model=MarketOverview)
 async def get_market_overview(
@@ -221,24 +226,29 @@ async def get_market_overview(
     Get market overview data
     """
     try:
-        # Initialize ETL pipeline
-        etl_pipeline = ETLPipeline()
+        # Get pipeline
+        pipeline = ETLPipeline()
+        await pipeline.setup()
         
-        # Get market overview from CoinMarketCap
-        overview = await etl_pipeline.get_market_overview(source="coinmarketcap")
+        # Get market overview
+        overview = await pipeline.get_market_overview()
         
-        # Format the response
+        if not overview:
+            raise HTTPException(status_code=404, detail="Market overview data not found")
+        
+        # Convert to response model
         return MarketOverview(
-            total_market_cap=overview.get("total_market_cap"),
-            total_volume_24h=overview.get("total_volume_24h"),
-            btc_dominance=overview.get("btc_dominance"),
-            eth_dominance=overview.get("eth_dominance"),
-            active_cryptocurrencies=overview.get("active_cryptocurrencies"),
-            last_updated=overview.get("last_updated")
+            total_market_cap=overview.get("total_market_cap", 0.0),
+            total_volume_24h=overview.get("total_volume_24h", 0.0),
+            btc_dominance=overview.get("btc_dominance", 0.0),
+            eth_dominance=overview.get("eth_dominance", 0.0),
+            active_cryptocurrencies=overview.get("active_cryptocurrencies", 0),
+            market_cap_change_percentage_24h=overview.get("market_cap_change_percentage_24h", 0.0),
+            last_updated=overview.get("last_updated", "")
         )
     except Exception as e:
-        logger.error(f"Error getting market overview: {e}")
-        raise HTTPException(status_code=500, detail=f"Error getting market overview: {str(e)}")
+        logger.error(f"Error fetching market overview: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching market overview: {str(e)}")
 
 @router.get("/metrics", response_model=List[MarketMetrics])
 async def get_metrics(

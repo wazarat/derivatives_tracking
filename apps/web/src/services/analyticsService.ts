@@ -14,17 +14,19 @@ export const initPostHog = () => {
       autocapture: false,
       // Disable persistence in local storage until user consents
       persistence: 'memory',
-      // Disable session recording by default
-      session_recording: {
-        enabled: false,
-      },
+      // Session recording is controlled via server-side configuration
     });
   }
 };
 
+// Check if PostHog is loaded
+const isPostHogLoaded = () => {
+  return typeof window !== 'undefined' && posthog && typeof posthog.capture === 'function';
+};
+
 // Track page views
 export const trackPageView = (url: string) => {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (isPostHogLoaded()) {
     posthog.capture('$pageview', { url });
   }
 };
@@ -33,30 +35,30 @@ export const trackPageView = (url: string) => {
 export const trackEvent = (
   eventName: string, 
   properties?: Record<string, any>,
-  options?: { sendImmediately?: boolean }
+  options?: Record<string, any>
 ) => {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (isPostHogLoaded()) {
     posthog.capture(eventName, properties, options);
   }
 };
 
 // Identify user
 export const identifyUser = (userId: string, traits?: Record<string, any>) => {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (isPostHogLoaded()) {
     posthog.identify(userId, traits);
   }
 };
 
 // Reset user identity (for logout)
 export const resetUser = () => {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (isPostHogLoaded()) {
     posthog.reset();
   }
 };
 
 // Set user consent for tracking
 export const setUserConsent = (consent: boolean) => {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (isPostHogLoaded()) {
     if (consent) {
       // Enable tracking features when user consents
       posthog.opt_in_capturing();

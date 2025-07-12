@@ -127,11 +127,9 @@ export default function WatchlistPage() {
             <AssetCard 
               key={asset.id} 
               asset={asset} 
-              onWatchlistToggle={
-                (isAdded) => {
-                  if (!isAdded) {
-                    handleAssetRemoved(asset.id);
-                  }
+              onWatchlistChange={
+                () => {
+                  handleAssetRemoved(asset.id);
                 }
               }
             />

@@ -34,10 +34,13 @@ export function SmartAllocate() {
   const [allocation, setAllocation] = useState<AllocationResponse | null>(null);
   
   // Fetch available assets
-  const { data: assets, isLoading: isLoadingAssets, error: assetsError } = useQuery({
+  const { data: assetResponse, isLoading: isLoadingAssets, error: assetsError } = useQuery({
     queryKey: ['assets'],
     queryFn: () => fetchAssets(),
   });
+
+  // Extract the actual asset array from the response
+  const assets = assetResponse?.data || [];
 
   // Handle form submission
   const handleGenerateAllocation = async () => {

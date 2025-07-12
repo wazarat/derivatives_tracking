@@ -9,7 +9,7 @@ import {
   Portfolio,
   calculatePortfolioAPY,
   calculatePortfolioRisk
-} from '@/services/portfolioService';
+} from '../../services/portfolioService';
 import { 
   Card, 
   CardContent, 
@@ -17,25 +17,8 @@ import {
   CardFooter, 
   CardHeader, 
   CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useToast } from '@/components/ui/use-toast';
+} from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
 import { 
   Plus, 
   MoreVertical, 
@@ -45,6 +28,7 @@ import {
   Share2,
   Loader2
 } from 'lucide-react';
+import { useToast } from '../../components/ui/use-toast';
 
 export default function PortfoliosPage() {
   const router = useRouter();
@@ -63,8 +47,7 @@ export default function PortfoliosPage() {
         console.error('Error loading portfolios:', error);
         toast({
           title: 'Error loading portfolios',
-          description: 'There was a problem loading your portfolios.',
-          variant: 'destructive',
+          description: 'There was a problem loading your portfolios.'
         });
       } finally {
         setIsLoading(false);
@@ -82,7 +65,7 @@ export default function PortfoliosPage() {
         setPortfolios(portfolios.filter(p => p.id !== portfolioId));
         toast({
           title: 'Portfolio deleted',
-          description: 'Your portfolio has been deleted successfully.',
+          description: 'Your portfolio has been deleted successfully.'
         });
       } else {
         throw new Error('Failed to delete portfolio');
@@ -91,8 +74,7 @@ export default function PortfoliosPage() {
       console.error('Error deleting portfolio:', error);
       toast({
         title: 'Error deleting portfolio',
-        description: 'There was a problem deleting your portfolio.',
-        variant: 'destructive',
+        description: 'There was a problem deleting your portfolio.'
       });
     } finally {
       setPortfolioToDelete(null);
@@ -158,32 +140,17 @@ export default function PortfoliosPage() {
                         {portfolio.entries.length} assets • Last updated {formatDate(portfolio.updatedAt)}
                       </CardDescription>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/portfolios/${portfolio.id}`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setPortfolioToDelete(portfolio.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                        {/* These would be implemented in future versions */}
-                        <DropdownMenuItem disabled>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
-                          <Share2 className="mr-2 h-4 w-4" />
-                          Share
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 mr-2">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 mr-2" onClick={() => router.push(`/portfolios/${portfolio.id}`)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setPortfolioToDelete(portfolio.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -223,25 +190,24 @@ export default function PortfoliosPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={!!portfolioToDelete} onOpenChange={() => setPortfolioToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this portfolio. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center" style={{ display: portfolioToDelete ? 'flex' : 'none' }}>
+        <div className="bg-white rounded-lg p-8 w-96">
+          <h2 className="text-lg font-bold mb-2">Are you sure?</h2>
+          <p className="text-muted-foreground mb-6">
+            This will permanently delete this portfolio. This action cannot be undone.
+          </p>
+          <div className="flex justify-end">
+            <Button variant="ghost" onClick={() => setPortfolioToDelete(null)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              className="ml-2"
               onClick={() => portfolioToDelete && handleDeletePortfolio(portfolioToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

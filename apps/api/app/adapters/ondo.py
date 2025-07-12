@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import httpx
+import os
 
 from app.adapters.base import BaseAdapter
 from app.models import Sector, RiskTier
@@ -24,34 +25,45 @@ class OndoAdapter(BaseAdapter):
             "Content-Type": "application/json",
         }
         
+        # CoinMarketCap API setup
+        self.cmc_api_key = os.environ.get("COINMARKETCAP_API_KEY")
+        self.cmc_base_url = "https://pro-api.coinmarketcap.com/v1"
+        self.cmc_headers = {
+            "X-CMC_PRO_API_KEY": self.cmc_api_key,
+            "Accept": "application/json"
+        }
+        
         # Map of asset IDs to their metadata
         self.asset_metadata = {
             "ousd": {
                 "ticker": "OUSD",
                 "name": "Ondo USD Yield",
                 "description": "Tokenized cash equivalent backed by short-term US Treasuries",
-                "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
+                "logo_url": "https://assets.ondofinance.com/images/tokens/ousd.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
                 "risk_tier": RiskTier.YIELD_PLUS,
+                "cmc_symbol": "OUSD"  # CoinMarketCap symbol
             },
             "ohmydai": {
                 "ticker": "OHMDAI",
                 "name": "Ondo DAI Yield",
                 "description": "Tokenized DAI yield product backed by real-world assets",
-                "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
+                "logo_url": "https://assets.ondofinance.com/images/tokens/ohmydai.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
                 "risk_tier": RiskTier.MARKET_BETA,
+                "cmc_symbol": "OHMDAI"  # CoinMarketCap symbol
             },
             "ousg": {
                 "ticker": "OUSG",
                 "name": "Ondo Short-Term US Government Bond",
                 "description": "Tokenized short-term US Treasury bond fund",
-                "logo_url": "https://assets.coingecko.com/coins/images/15681/large/ondo.png",
+                "logo_url": "https://assets.ondofinance.com/images/tokens/ousg.png",
                 "website": "https://ondo.finance",
                 "sector": Sector.TOKENIZED_RWA,
                 "risk_tier": RiskTier.YIELD_PLUS,
+                "cmc_symbol": "OUSG"  # CoinMarketCap symbol
             },
         }
     
@@ -68,16 +80,25 @@ class OndoAdapter(BaseAdapter):
             raise ValueError(f"Unsupported asset_id: {asset_id}")
             
         metadata = self.asset_metadata[asset_id]
+        cmc_symbol = metadata.get("cmc_symbol", metadata["ticker"])
         
         try:
-            # Get market data from CoinGecko
-            cg_url = f"https://api.coingecko.com/api/v3/coins/{asset_id}"
+            # Get market data from CoinMarketCap
+            cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/latest"
             
             async with httpx.AsyncClient() as client:
                 # Get market data
-                response = await client.get(cg_url, params={"tickers": "false"})
+                response = await client.get(
+                    cmc_url,
+                    headers=self.cmc_headers,
+                    params={"symbol": cmc_symbol, "convert": "USD"}
+                )
                 response.raise_for_status()
                 data = response.json()
+                
+                # Extract data from response
+                token_data = data.get("data", {}).get(cmc_symbol, {})
+                quote = token_data.get("quote", {}).get("USD", {})
                 
                 # Get APY/APR data from Ondo API if available
                 apy = await self._get_apy(asset_id)
@@ -96,12 +117,12 @@ class OndoAdapter(BaseAdapter):
                 "website": metadata["website"],
                 "description": metadata["description"],
                 "market_data": {
-                    "price_usd": data["market_data"].get("current_price", {}).get("usd"),
-                    "market_cap": data["market_data"].get("market_cap", {}).get("usd"),
-                    "circulating_supply": data["market_data"].get("circulating_supply"),
-                    "total_supply": data["market_data"].get("total_supply"),
-                    "price_change_24h": data["market_data"].get("price_change_24h"),
-                    "price_change_percentage_24h": data["market_data"].get("price_change_percentage_24h"),
+                    "price_usd": quote.get("price"),
+                    "market_cap": quote.get("market_cap"),
+                    "circulating_supply": token_data.get("circulating_supply"),
+                    "total_supply": token_data.get("total_supply"),
+                    "price_change_24h": quote.get("percent_change_24h"),
+                    "price_change_percentage_24h": quote.get("percent_change_24h"),
                     "yield_7d_apy": apy,
                 },
                 "reserves": reserve_data,
@@ -183,41 +204,52 @@ class OndoAdapter(BaseAdapter):
         if end_date is None:
             end_date = datetime.utcnow()
             
-        # Convert to timestamps in seconds
-        from_timestamp = int(start_date.timestamp())
-        to_timestamp = int(end_date.timestamp())
+        # Convert to timestamps
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
+        
+        metadata = self.asset_metadata[asset_id]
+        cmc_symbol = metadata.get("cmc_symbol", metadata["ticker"])
         
         try:
-            # Get historical price data from CoinGecko
-            cg_url = f"https://api.coingecko.com/api/v3/coins/{asset_id}/market_chart/range"
+            # Get historical price data from CoinMarketCap
+            cmc_url = f"{self.cmc_base_url}/cryptocurrency/quotes/historical"
             params = {
-                "vs_currency": "usd",
-                "from": from_timestamp,
-                "to": to_timestamp,
+                "symbol": cmc_symbol,
+                "time_start": start_str,
+                "time_end": end_str,
+                "count": 500,  # Maximum allowed by CMC
+                "interval": "daily",
+                "convert": "USD"
             }
             
             async with httpx.AsyncClient() as client:
-                response = await client.get(cg_url, params=params)
+                response = await client.get(cmc_url, headers=self.cmc_headers, params=params)
                 response.raise_for_status()
                 data = response.json()
             
             # Format the data into our standard metric format
             metrics = []
-            for timestamp, price in data.get("prices", []):
+            quotes = data.get("data", {}).get("quotes", [])
+            
+            for quote in quotes:
+                timestamp = quote.get("timestamp")
+                quote_data = quote.get("quote", {}).get("USD", {})
+                
+                # Add price data
                 metrics.append(self.to_metric_model({
                     "asset_id": asset_id,
                     "metric_type": "price_usd",
-                    "value": price,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("price"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
-            # Add volume data if available
-            for timestamp, volume in data.get("total_volumes", []):
+                # Add volume data if available
                 metrics.append(self.to_metric_model({
                     "asset_id": asset_id,
                     "metric_type": "volume_24h",
-                    "value": volume,
-                    "timestamp": datetime.fromtimestamp(timestamp / 1000)
+                    "value": quote_data.get("volume_24h"),
+                    "timestamp": datetime.fromisoformat(timestamp) if timestamp else None
                 }))
                 
             # Add APY data (simplified - in prod, you'd fetch historical APY)

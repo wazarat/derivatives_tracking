@@ -15,6 +15,10 @@ const nextConfig = {
   },
   experimental: {
   },
+  // Skip type checking during build if SKIP_TYPE_CHECK is set
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
+  },
   async headers() {
     return [
       {

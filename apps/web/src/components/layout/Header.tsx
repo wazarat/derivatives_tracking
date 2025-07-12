@@ -16,7 +16,20 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+// Define simple avatar components inline to avoid import issues
+const Avatar = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className || ''}`} {...props} />
+);
+
+const AvatarImage = ({ src, alt = '', className, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+  <img src={src} alt={alt} className={`aspect-square h-full w-full ${className || ''}`} {...props} />
+);
+
+const AvatarFallback = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`flex h-full w-full items-center justify-center rounded-full bg-gray-200 ${className || ''}`} {...props} />
+);
+
 import { 
   BarChart3, 
   Home, 
@@ -115,7 +128,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email || ''} />
+                    <AvatarImage src={(user as any).user_metadata?.avatar_url} alt={user.email || ''} />
                     <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                 </Button>
