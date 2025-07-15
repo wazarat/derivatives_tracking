@@ -1,10 +1,15 @@
+"use client";
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../components/ui/button';
 import { ArrowRight, BarChart3, LineChart, Shield, Zap, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { useAuth } from '@clerk/nextjs';
 
 export default function Home() {
+  const { isSignedIn } = useAuth();
+  
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -20,18 +25,20 @@ export default function Home() {
                   Real-time market data, portfolio tracking, and risk analysis for crypto traders and investors.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/sign-up">
-                  <Button size="lg" className="gap-1.5">
-                    Get Started <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/research">
-                  <Button size="lg" variant="outline">
-                    Explore Markets
-                  </Button>
-                </Link>
-              </div>
+              {!isSignedIn && (
+                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <Link href="/sign-up">
+                    <Button size="lg" className="gap-1.5">
+                      Get Started <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/research">
+                    <Button size="lg" variant="outline">
+                      Explore Markets
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
             <div className="mx-auto lg:mx-0 relative">
               <div className="relative h-[350px] w-full overflow-hidden rounded-xl border bg-background p-2 shadow-lg">
@@ -201,13 +208,20 @@ export default function Home() {
                 Join thousands of traders using CanHav to make data-driven decisions.
               </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Link href="/sign-up">
-                <Button size="lg" className="gap-1.5">
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            {!isSignedIn && (
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Link href="/sign-up">
+                  <Button size="lg" className="gap-1.5">
+                    Get Started <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/research">
+                  <Button size="lg" variant="outline">
+                    Explore Markets
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>

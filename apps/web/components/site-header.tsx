@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Bitcoin, Menu, X } from "lucide-react";
 
 import dynamic from "next/dynamic";
+import { useAuth } from "@clerk/nextjs";
+
 const UserButton = dynamic(
   () => import("@clerk/nextjs").then((mod) => mod.UserButton),
   { ssr: false }
@@ -18,6 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { isSignedIn } = useAuth();
 
   const routes = [
     {
@@ -51,10 +54,17 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
-          <Link href="/" className="flex items-center space-x-2">
-            <Bitcoin className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">CanHav</span>
-          </Link>
+          {isSignedIn ? (
+            <div className="flex items-center space-x-2">
+              <Bitcoin className="h-6 w-6" />
+              <span className="hidden font-bold sm:inline-block">CanHav</span>
+            </div>
+          ) : (
+            <Link href="/" className="flex items-center space-x-2">
+              <Bitcoin className="h-6 w-6" />
+              <span className="hidden font-bold sm:inline-block">CanHav</span>
+            </Link>
+          )}
         </div>
         
         {/* Desktop Navigation */}
