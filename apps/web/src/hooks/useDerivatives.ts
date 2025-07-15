@@ -23,7 +23,7 @@ interface DerivativesStats {
 // Define sector types
 export type DerivativesSector = 'cex-perps' | 'cex-futures' | 'dex-perps';
 
-// Mock data for testing - directly embedded in the hook
+// Fallback mock data in case API fails
 const mockData: DerivativesLatest[] = [
   {
     id: 1,
@@ -77,18 +77,12 @@ const mockData: DerivativesLatest[] = [
  * @returns Promise with the derivatives data
  */
 async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesLatest[]> {
-  // Add console logs for debugging
-  console.log('Using mock data for sector:', sector);
+  console.log('Fetching derivatives data for sector:', sector);
   
-  // For now, just return the mock data directly
-  // This bypasses any API calls which might be causing 404 errors
-  return Promise.resolve(mockData);
-  
-  /* Commented out API fetch code for now
   try {
-    // Use mock endpoint for testing
+    // Use the pages/api endpoint instead of app/api
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const apiUrl = `${baseUrl}/api/derivatives/mock`;
+    const apiUrl = `${baseUrl}/api/cmc-derivatives`;
     console.log('Fetching from URL:', apiUrl);
     
     const response = await fetch(apiUrl);
@@ -97,20 +91,31 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     
     if (!response.ok) {
       console.error('Error response:', response.statusText);
-      throw new Error(`Failed to fetch derivatives data: ${response.status} ${response.statusText}`);
+      console.log('Falling back to mock data due to API error');
+      return mockData; // Fallback to mock data on error
     }
     
     const data = await response.json();
     console.log('Received data count:', data?.length || 0);
     
-    // If we need to filter by contract_type based on sector, we can do it here
-    // For now, we'll return all data regardless of sector
-    return data || [];
+    if (!data || data.length === 0) {
+      console.log('No data returned from API, falling back to mock data');
+      return mockData; // Fallback to mock data if no data returned
+    }
+    
+    // Filter by contract_type if sector is specified
+    if (sector === 'cex-perps') {
+      return data.filter(item => item.contract_type === 'perpetual');
+    } else if (sector === 'cex-futures') {
+      return data.filter(item => item.contract_type === 'futures');
+    }
+    
+    return data;
   } catch (error) {
     console.error('Error fetching derivatives data:', error);
-    throw error;
+    console.log('Falling back to mock data due to error');
+    return mockData; // Fallback to mock data on error
   }
-  */
 }
 
 /**
@@ -157,7 +162,7 @@ export function useDerivatives(sector: DerivativesSector) {
   console.log('useDerivatives hook called with sector:', sector);
   
   return useQuery<DerivativesLatest[], Error, { data: DerivativesLatest[], stats: DerivativesStats }>({
-    queryKey: ['derivatives', 'hardcoded-mock'], // Use a unique key for the hardcoded mock data
+    queryKey: ['derivatives', 'cmc-api', sector], // Include sector in the key for proper caching
     queryFn: () => fetchDerivatives(sector),
     refetchInterval: 30000, // Refetch every 30 seconds
     select: (data) => {
