@@ -1,13 +1,13 @@
 import { CronJob } from 'cron';
 import dotenv from 'dotenv';
 import path from 'path';
-import { run as runCmcWorker } from './cmcDerivativesWorker';
+import { cmcDerivativesWorker } from './cmcDerivativesWorker';
 import { run as runHyperliquidWorker } from './hyperliquidDerivativesWorker';
 import { run as runDydxWorker } from './dydxDerivativesWorker';
 import { createRetryableWorker } from './rest_worker';
 
 // Create retryable versions of the workers
-const retryableCmcWorker = createRetryableWorker(runCmcWorker, {
+const retryableCmcWorker = createRetryableWorker(cmcDerivativesWorker, {
   maxRetries: 3,
   initialDelayMs: 2000,
   maxDelayMs: 30000,
