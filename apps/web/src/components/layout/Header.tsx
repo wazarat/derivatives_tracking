@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -59,9 +60,14 @@ export function Header() {
       icon: <BarChart3 className="h-4 w-4 mr-2" />
     },
     {
+      name: 'Research',
+      href: '/research',
+      icon: <LineChart className="h-4 w-4 mr-2" />
+    },
+    {
       name: 'Metrics',
       href: '/metrics',
-      icon: <LineChart className="h-4 w-4 mr-2" />
+      icon: <BarChart3 className="h-4 w-4 mr-2" />
     },
     {
       name: 'Portfolios',
@@ -94,7 +100,13 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">CanHav</span>
+            <Image 
+              src="/logo.svg" 
+              alt="CanHav Logo" 
+              width={120} 
+              height={40} 
+              priority
+            />
           </Link>
         </div>
         

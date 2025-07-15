@@ -1,151 +1,217 @@
-import { Asset, AssetSchema } from '@/types/assets';
+import { supabase } from "@/lib/supabase";
+import { AddTradeFormData } from "@/components/research/AddTradeModal";
 
-// Local storage key for watchlist
-const WATCHLIST_STORAGE_KEY = 'canhav_watchlist';
+// Define types for watchlist and portfolio items
+export interface WatchlistItem {
+  id: string;
+  user_id: string;
+  instrument_id: string;
+  instrument_symbol: string;
+  instrument_name: string;
+  venue: string;
+  notes: string;
+  created_at: string;
+}
 
-/**
- * Get the user's watchlist from local storage
- * @returns Array of asset IDs in the watchlist
- */
-export function getWatchlistIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  
-  try {
-    const storedWatchlist = localStorage.getItem(WATCHLIST_STORAGE_KEY);
-    if (!storedWatchlist) return [];
-    
-    const parsedWatchlist = JSON.parse(storedWatchlist);
-    if (!Array.isArray(parsedWatchlist)) return [];
-    
-    return parsedWatchlist.filter(id => typeof id === 'string');
-  } catch (error) {
-    console.error('Error getting watchlist from local storage:', error);
-    return [];
-  }
+export interface PortfolioItem extends WatchlistItem {
+  position_side: 'long' | 'short';
+  position_size: number;
+  entry_price: number;
+  stop_loss?: number;
+  take_profit?: number;
+  leverage?: number;
 }
 
 /**
- * Get the full watchlist assets from local storage
- * @returns Array of assets in the watchlist
+ * Add an instrument to the user's watchlist
+ * @param data The trade data to add
+ * @returns The created watchlist item
  */
-export function getWatchlistAssets(): Asset[] {
-  if (typeof window === 'undefined') return [];
+export async function addToWatchlist(data: AddTradeFormData): Promise<WatchlistItem> {
+  const { data: user } = await supabase.auth.getUser();
   
-  try {
-    const storedWatchlistAssets = localStorage.getItem(`${WATCHLIST_STORAGE_KEY}_assets`);
-    if (!storedWatchlistAssets) return [];
-    
-    const parsedAssets = JSON.parse(storedWatchlistAssets);
-    if (!Array.isArray(parsedAssets)) return [];
-    
-    // Validate each asset with the schema
-    return parsedAssets.filter(asset => {
-      try {
-        return AssetSchema.parse(asset);
-      } catch (error) {
-        console.error('Invalid asset in watchlist:', asset);
-        return false;
-      }
-    });
-  } catch (error) {
-    console.error('Error getting watchlist assets from local storage:', error);
-    return [];
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  const { data: watchlistItem, error } = await supabase
+    .from("watchlist")
+    .insert({
+      user_id: user.user.id,
+      instrument_id: data.instrumentId,
+      instrument_symbol: data.instrumentSymbol,
+      instrument_name: data.instrumentName,
+      venue: data.venue,
+      notes: data.notes,
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    throw error;
+  }
+  
+  // Emit websocket event for real-time updates
+  await supabase.channel('watchlist_changes').send({
+    type: 'broadcast',
+    event: 'watchlist_add',
+    payload: { user_id: user.user.id, item: watchlistItem },
+  });
+  
+  return watchlistItem;
 }
 
 /**
- * Add an asset to the watchlist
- * @param asset Asset to add to watchlist
+ * Add an instrument to the user's portfolio
+ * @param data The trade data to add
+ * @returns The created portfolio item
  */
-export function addToWatchlist(asset: Asset): void {
-  if (typeof window === 'undefined') return;
+export async function addToPortfolio(data: AddTradeFormData): Promise<PortfolioItem> {
+  const { data: user } = await supabase.auth.getUser();
   
-  try {
-    // Get current watchlist
-    const currentWatchlistIds = getWatchlistIds();
-    const currentWatchlistAssets = getWatchlistAssets();
-    
-    // Check if asset is already in watchlist
-    if (currentWatchlistIds.includes(asset.id)) return;
-    
-    // Add asset ID to watchlist IDs
-    const newWatchlistIds = [...currentWatchlistIds, asset.id];
-    localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(newWatchlistIds));
-    
-    // Add asset to watchlist assets
-    const newWatchlistAssets = [...currentWatchlistAssets, asset];
-    localStorage.setItem(`${WATCHLIST_STORAGE_KEY}_assets`, JSON.stringify(newWatchlistAssets));
-  } catch (error) {
-    console.error('Error adding asset to watchlist:', error);
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  if (!data.position) {
+    throw new Error("Position data is required for portfolio items");
+  }
+  
+  const { data: portfolioItem, error } = await supabase
+    .from("portfolio")
+    .insert({
+      user_id: user.user.id,
+      instrument_id: data.instrumentId,
+      instrument_symbol: data.instrumentSymbol,
+      instrument_name: data.instrumentName,
+      venue: data.venue,
+      notes: data.notes,
+      position_side: data.position.side,
+      position_size: data.position.size,
+      entry_price: data.position.entryPrice,
+      stop_loss: data.position.stopLoss,
+      take_profit: data.position.takeProfit,
+      leverage: data.position.leverage,
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    throw error;
+  }
+  
+  // Emit websocket event for real-time updates
+  await supabase.channel('portfolio_changes').send({
+    type: 'broadcast',
+    event: 'portfolio_add',
+    payload: { user_id: user.user.id, item: portfolioItem },
+  });
+  
+  return portfolioItem;
 }
 
 /**
- * Remove an asset from the watchlist
- * @param assetId ID of asset to remove from watchlist
+ * Get the user's watchlist
+ * @returns Array of watchlist items
  */
-export function removeFromWatchlist(assetId: string): void {
-  if (typeof window === 'undefined') return;
+export async function getWatchlist(): Promise<WatchlistItem[]> {
+  const { data: user } = await supabase.auth.getUser();
   
-  try {
-    // Get current watchlist
-    const currentWatchlistIds = getWatchlistIds();
-    const currentWatchlistAssets = getWatchlistAssets();
-    
-    // Remove asset ID from watchlist IDs
-    const newWatchlistIds = currentWatchlistIds.filter(id => id !== assetId);
-    localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(newWatchlistIds));
-    
-    // Remove asset from watchlist assets
-    const newWatchlistAssets = currentWatchlistAssets.filter(asset => asset.id !== assetId);
-    localStorage.setItem(`${WATCHLIST_STORAGE_KEY}_assets`, JSON.stringify(newWatchlistAssets));
-  } catch (error) {
-    console.error('Error removing asset from watchlist:', error);
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  const { data, error } = await supabase
+    .from("watchlist")
+    .select("*")
+    .eq("user_id", user.user.id)
+    .order("created_at", { ascending: false });
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data || [];
 }
 
 /**
- * Check if an asset is in the watchlist
- * @param assetId ID of asset to check
- * @returns True if asset is in watchlist, false otherwise
+ * Get the user's portfolio
+ * @returns Array of portfolio items
  */
-export function isInWatchlist(assetId: string): boolean {
-  if (typeof window === 'undefined') return false;
+export async function getPortfolio(): Promise<PortfolioItem[]> {
+  const { data: user } = await supabase.auth.getUser();
   
-  try {
-    const watchlistIds = getWatchlistIds();
-    return watchlistIds.includes(assetId);
-  } catch (error) {
-    console.error('Error checking if asset is in watchlist:', error);
-    return false;
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  const { data, error } = await supabase
+    .from("portfolio")
+    .select("*")
+    .eq("user_id", user.user.id)
+    .order("created_at", { ascending: false });
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data || [];
 }
 
 /**
- * Toggle an asset in the watchlist (add if not present, remove if present)
- * @param asset Asset to toggle in watchlist
- * @returns True if asset was added, false if it was removed
+ * Remove an item from the user's watchlist
+ * @param id The ID of the watchlist item to remove
  */
-export function toggleWatchlist(asset: Asset): boolean {
-  if (isInWatchlist(asset.id)) {
-    removeFromWatchlist(asset.id);
-    return false;
-  } else {
-    addToWatchlist(asset);
-    return true;
+export async function removeFromWatchlist(id: string): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  const { error } = await supabase
+    .from("watchlist")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.user.id);
+  
+  if (error) {
+    throw error;
+  }
+  
+  // Emit websocket event for real-time updates
+  await supabase.channel('watchlist_changes').send({
+    type: 'broadcast',
+    event: 'watchlist_remove',
+    payload: { user_id: user.user.id, item_id: id },
+  });
 }
 
 /**
- * Clear the entire watchlist
+ * Remove an item from the user's portfolio
+ * @param id The ID of the portfolio item to remove
  */
-export function clearWatchlist(): void {
-  if (typeof window === 'undefined') return;
+export async function removeFromPortfolio(id: string): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
   
-  try {
-    localStorage.removeItem(WATCHLIST_STORAGE_KEY);
-    localStorage.removeItem(`${WATCHLIST_STORAGE_KEY}_assets`);
-  } catch (error) {
-    console.error('Error clearing watchlist:', error);
+  if (!user.user) {
+    throw new Error("User not authenticated");
   }
+  
+  const { error } = await supabase
+    .from("portfolio")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.user.id);
+  
+  if (error) {
+    throw error;
+  }
+  
+  // Emit websocket event for real-time updates
+  await supabase.channel('portfolio_changes').send({
+    type: 'broadcast',
+    event: 'portfolio_remove',
+    payload: { user_id: user.user.id, item_id: id },
+  });
 }
