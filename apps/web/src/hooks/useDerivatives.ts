@@ -29,18 +29,30 @@ export type DerivativesSector = 'cex-perps' | 'cex-futures' | 'dex-perps';
  * @returns Promise with the derivatives data
  */
 async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesLatest[]> {
-  // For now, use the unified endpoint for all sectors
-  const response = await fetch(`/api/derivatives/all`);
+  // Add console logs for debugging
+  console.log('Fetching derivatives data for sector:', sector);
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch derivatives data: ${response.status} ${response.statusText}`);
+  try {
+    // For now, use the unified endpoint for all sectors
+    const response = await fetch('/api/derivatives/all');
+    
+    console.log('API response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('Error response:', response.statusText);
+      throw new Error(`Failed to fetch derivatives data: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Received data count:', data.length);
+    
+    // If we need to filter by contract_type based on sector, we can do it here
+    // For now, we'll return all data regardless of sector
+    return data;
+  } catch (error) {
+    console.error('Error fetching derivatives data:', error);
+    throw error;
   }
-  
-  const data = await response.json();
-  
-  // If we need to filter by contract_type based on sector, we can do it here
-  // For now, we'll return all data regardless of sector
-  return data;
 }
 
 /**
@@ -84,13 +96,18 @@ export function calculateDerivativesStats(data: DerivativesLatest[]): Derivative
  * @returns Query result with derivatives data and stats
  */
 export function useDerivatives(sector: DerivativesSector) {
+  console.log('useDerivatives hook called with sector:', sector);
+  
   return useQuery<DerivativesLatest[], Error, { data: DerivativesLatest[], stats: DerivativesStats }>({
     queryKey: ['derivatives', 'all'], // Use 'all' instead of sector to ensure same data for all pages
     queryFn: () => fetchDerivatives(sector),
     refetchInterval: 30000, // Refetch every 30 seconds
-    select: (data) => ({
-      data,
-      stats: calculateDerivativesStats(data),
-    }),
+    select: (data) => {
+      console.log('Received data from query:', data);
+      return {
+        data,
+        stats: calculateDerivativesStats(data),
+      };
+    },
   });
 }

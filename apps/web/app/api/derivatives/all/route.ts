@@ -4,13 +4,22 @@ import { createClient } from '@supabase/supabase-js';
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// Add debug logging
+console.log('API route initialized with:');
+console.log('- Supabase URL exists:', !!supabaseUrl);
+console.log('- Supabase key exists:', !!supabaseKey);
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const dynamic = 'force-dynamic'; // No caching
 
 export async function GET() {
+  console.log('GET request received at /api/derivatives/all');
+  
   try {
     // Get the latest timestamp from the cex_derivatives_instruments table
+    console.log('Fetching latest timestamp...');
     const { data: latestTimestampData, error: latestTimestampError } = await supabase
       .from('cex_derivatives_instruments')
       .select('ts')
@@ -23,12 +32,15 @@ export async function GET() {
     }
 
     if (!latestTimestampData || latestTimestampData.length === 0) {
+      console.log('No timestamp data found, returning empty array');
       return NextResponse.json([], { status: 200 });
     }
 
     const latestTimestamp = latestTimestampData[0].ts;
+    console.log('Latest timestamp:', latestTimestamp);
 
     // Fetch all derivatives data from the latest timestamp
+    console.log('Fetching derivatives data for timestamp:', latestTimestamp);
     const { data, error } = await supabase
       .from('cex_derivatives_instruments')
       .select('*')
@@ -39,9 +51,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch derivatives data' }, { status: 500 });
     }
 
+    console.log(`Successfully fetched ${data?.length || 0} derivatives records`);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in API route:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
