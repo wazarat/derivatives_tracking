@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { AddTradeFormData } from "@/components/research/AddTradeModal";
+import { Asset } from "@/types/assets";
 
 // Define types for watchlist and portfolio items
 export interface WatchlistItem {
@@ -214,4 +215,65 @@ export async function removeFromPortfolio(id: string): Promise<void> {
     event: 'portfolio_remove',
     payload: { user_id: user.user.id, item_id: id },
   });
+}
+
+/**
+ * Check if an asset is in the user's watchlist
+ * @param assetId The ID of the asset to check
+ * @returns True if the asset is in the watchlist, false otherwise
+ */
+export function isInWatchlist(assetId: string): boolean {
+  // Get watchlist from localStorage
+  const watchlistStr = typeof window !== 'undefined' ? localStorage.getItem('watchlist') : null;
+  if (!watchlistStr) return false;
+  
+  try {
+    const watchlist = JSON.parse(watchlistStr);
+    return Array.isArray(watchlist) && watchlist.some(item => item.instrument_id === assetId);
+  } catch (error) {
+    console.error('Error parsing watchlist from localStorage:', error);
+    return false;
+  }
+}
+
+/**
+ * Toggle an asset in the user's watchlist (add if not present, remove if present)
+ * @param asset The asset to toggle in the watchlist
+ * @returns True if the asset was added, false if it was removed
+ */
+export function toggleWatchlist(asset: Asset): boolean {
+  // Get current watchlist from localStorage
+  const watchlistStr = typeof window !== 'undefined' ? localStorage.getItem('watchlist') : null;
+  let watchlist: any[] = [];
+  
+  try {
+    if (watchlistStr) {
+      watchlist = JSON.parse(watchlistStr);
+      if (!Array.isArray(watchlist)) watchlist = [];
+    }
+  } catch (error) {
+    console.error('Error parsing watchlist from localStorage:', error);
+  }
+  
+  // Check if asset is already in watchlist
+  const index = watchlist.findIndex(item => item.instrument_id === asset.id);
+  
+  if (index >= 0) {
+    // Remove from watchlist
+    watchlist.splice(index, 1);
+    localStorage.setItem('watchlist', JSON.stringify(watchlist));
+    return false;
+  } else {
+    // Add to watchlist
+    const newItem = {
+      instrument_id: asset.id,
+      instrument_symbol: asset.ticker,
+      instrument_name: asset.name,
+      venue: asset.sector.toString(), // Use sector as venue since venue doesn't exist
+      created_at: new Date().toISOString()
+    };
+    watchlist.push(newItem);
+    localStorage.setItem('watchlist', JSON.stringify(watchlist));
+    return true;
+  }
 }

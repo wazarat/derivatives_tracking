@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { cn } from "@/lib/utils"
 
 interface AlertDialogProps {
   children: React.ReactNode
@@ -15,12 +16,28 @@ interface AlertDialogTriggerProps {
   asChild?: boolean
 }
 
-const AlertDialogTrigger = ({
+const AlertDialogTrigger = React.forwardRef<
+  HTMLDivElement,
+  AlertDialogTriggerProps & React.HTMLAttributes<HTMLDivElement>
+>(({
   children,
   asChild = false,
-}: AlertDialogTriggerProps) => {
-  return <div>{children}</div>
-}
+  className,
+  ...props
+}, ref) => {
+  const Comp = asChild ? React.Fragment : "div";
+  
+  return (
+    <Comp
+      ref={ref}
+      className={cn(className)}
+      {...props}
+    >
+      {children}
+    </Comp>
+  );
+});
+AlertDialogTrigger.displayName = "AlertDialogTrigger";
 
 interface AlertDialogContentProps {
   children: React.ReactNode

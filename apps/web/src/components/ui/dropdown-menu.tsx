@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DropdownMenuProps {
   children: React.ReactNode
@@ -46,18 +47,31 @@ interface DropdownMenuTriggerProps {
   asChild?: boolean
 }
 
-const DropdownMenuTrigger = ({
+const DropdownMenuTrigger = React.forwardRef<
+  HTMLButtonElement,
+  DropdownMenuTriggerProps & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({
   children,
   asChild = false,
-}: DropdownMenuTriggerProps) => {
+  className,
+  ...props
+}, ref) => {
+  const Comp = asChild ? React.Fragment : "button";
+  
   return (
-    <button
-      className="inline-flex w-full justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100"
+    <Comp
+      ref={ref}
+      className={cn(
+        "inline-flex w-full justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100",
+        className
+      )}
+      {...props}
     >
       {children}
-    </button>
-  )
-}
+    </Comp>
+  );
+});
+DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 
 interface DropdownMenuContentProps {
   children: React.ReactNode
@@ -97,7 +111,10 @@ interface DropdownMenuItemProps {
   className?: string
 }
 
-const DropdownMenuItem = ({
+const DropdownMenuItem = React.forwardRef<
+  HTMLButtonElement,
+  DropdownMenuItemProps & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({
   children,
   onSelect,
   onClick,
@@ -105,26 +122,35 @@ const DropdownMenuItem = ({
   inset = false,
   asChild = false,
   className = "",
-}: DropdownMenuItemProps) => {
-  if (asChild) {
-    return <div className={`block w-full ${className}`}>{children}</div>
-  }
+  ...props
+}, ref) => {
+  const Comp = asChild ? React.Fragment : "button";
+  
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!disabled) {
+      onSelect?.(e as unknown as Event);
+      onClick?.();
+    }
+  };
   
   return (
-    <button
-      className={`block w-full px-4 py-2 text-left text-sm ${
-        disabled ? "text-gray-400" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-      } ${inset ? "pl-8" : ""} ${className}`}
+    <Comp
+      ref={ref}
+      className={cn(
+        "block w-full px-4 py-2 text-left text-sm",
+        disabled ? "text-gray-400" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+        inset ? "pl-8" : "",
+        className
+      )}
       disabled={disabled}
-      onClick={(e) => {
-        onSelect?.(e as unknown as Event);
-        onClick?.();
-      }}
+      onClick={handleClick}
+      {...props}
     >
       {children}
-    </button>
-  )
-}
+    </Comp>
+  );
+});
+DropdownMenuItem.displayName = "DropdownMenuItem";
 
 interface DropdownMenuCheckboxItemProps {
   children: React.ReactNode

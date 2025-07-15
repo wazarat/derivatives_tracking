@@ -9,7 +9,25 @@ import { cn } from "@/lib/utils"
 
 const Sheet = SheetPrimitive.Root
 
-const SheetTrigger = SheetPrimitive.Trigger
+interface SheetTriggerProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Trigger> {
+  asChild?: boolean;
+}
+
+const SheetTrigger = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Trigger>,
+  SheetTriggerProps
+>(({ className, asChild = false, ...props }, ref) => {
+  const Comp = asChild ? React.Fragment : SheetPrimitive.Trigger;
+  
+  return (
+    <Comp
+      ref={ref}
+      className={asChild ? undefined : cn(className)}
+      {...props}
+    />
+  );
+})
+SheetTrigger.displayName = SheetPrimitive.Trigger.displayName
 
 const SheetClose = SheetPrimitive.Close
 
