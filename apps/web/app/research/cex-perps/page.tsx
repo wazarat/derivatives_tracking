@@ -4,16 +4,10 @@
 export const dynamic = "force-dynamic";
 
 import React from "react";
-import { Metadata } from 'next';
 import { DerivativesPanel } from '../../metrics/components/DerivativesPanel';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-
-export const metadata: Metadata = {
-  title: 'CEX Perpetuals | Research',
-  description: 'Centralized Exchange Perpetual Futures Research Dashboard',
-};
 
 export default function CexPerpsPage() {
   return (

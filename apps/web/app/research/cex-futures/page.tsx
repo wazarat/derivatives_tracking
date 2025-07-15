@@ -1,17 +1,11 @@
 "use client";
 
-import { Metadata } from 'next';
 import { DerivativesPanel } from '../../metrics/components/DerivativesPanel';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: 'CEX Futures | Research',
-  description: 'Centralized Exchange Futures Research Dashboard',
-};
 
 export default function CexFuturesPage() {
   return (
