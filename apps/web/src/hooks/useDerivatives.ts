@@ -33,8 +33,12 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
   console.log('Fetching derivatives data for sector:', sector);
   
   try {
-    // For now, use the unified endpoint for all sectors
-    const response = await fetch('/api/derivatives/all');
+    // Try with window.location.origin to ensure correct base URL in all environments
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const apiUrl = `${baseUrl}/api/derivatives/all`;
+    console.log('Fetching from URL:', apiUrl);
+    
+    const response = await fetch(apiUrl);
     
     console.log('API response status:', response.status);
     
@@ -44,11 +48,11 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     }
     
     const data = await response.json();
-    console.log('Received data count:', data.length);
+    console.log('Received data count:', data?.length || 0);
     
     // If we need to filter by contract_type based on sector, we can do it here
     // For now, we'll return all data regardless of sector
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error fetching derivatives data:', error);
     throw error;
