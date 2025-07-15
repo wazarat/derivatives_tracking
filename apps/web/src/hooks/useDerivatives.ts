@@ -23,6 +23,54 @@ interface DerivativesStats {
 // Define sector types
 export type DerivativesSector = 'cex-perps' | 'cex-futures' | 'dex-perps';
 
+// Mock data for testing - directly embedded in the hook
+const mockData: DerivativesLatest[] = [
+  {
+    id: 1,
+    ts: new Date().toISOString(),
+    exchange: 'binance',
+    symbol: 'BTCUSDT',
+    contract_type: 'perpetual',
+    oi_usd: 1000000000,
+    funding_rate: 0.0001,
+    volume_24h: 5000000000,
+    index_price: 65000
+  },
+  {
+    id: 2,
+    ts: new Date().toISOString(),
+    exchange: 'binance',
+    symbol: 'ETHUSDT',
+    contract_type: 'perpetual',
+    oi_usd: 500000000,
+    funding_rate: 0.0002,
+    volume_24h: 2500000000,
+    index_price: 3500
+  },
+  {
+    id: 3,
+    ts: new Date().toISOString(),
+    exchange: 'okx',
+    symbol: 'BTC-USDT-SWAP',
+    contract_type: 'perpetual',
+    oi_usd: 800000000,
+    funding_rate: -0.0001,
+    volume_24h: 4000000000,
+    index_price: 65100
+  },
+  {
+    id: 4,
+    ts: new Date().toISOString(),
+    exchange: 'bybit',
+    symbol: 'BTCUSDT',
+    contract_type: 'futures',
+    oi_usd: 600000000,
+    funding_rate: null,
+    volume_24h: 3000000000,
+    index_price: 64900
+  }
+];
+
 /**
  * Fetch derivatives data from the API
  * @param sector The derivatives sector to fetch (cex-perps, cex-futures, dex-perps)
@@ -30,8 +78,13 @@ export type DerivativesSector = 'cex-perps' | 'cex-futures' | 'dex-perps';
  */
 async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesLatest[]> {
   // Add console logs for debugging
-  console.log('Fetching derivatives data for sector:', sector);
+  console.log('Using mock data for sector:', sector);
   
+  // For now, just return the mock data directly
+  // This bypasses any API calls which might be causing 404 errors
+  return Promise.resolve(mockData);
+  
+  /* Commented out API fetch code for now
   try {
     // Use mock endpoint for testing
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -57,6 +110,7 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     console.error('Error fetching derivatives data:', error);
     throw error;
   }
+  */
 }
 
 /**
@@ -103,7 +157,7 @@ export function useDerivatives(sector: DerivativesSector) {
   console.log('useDerivatives hook called with sector:', sector);
   
   return useQuery<DerivativesLatest[], Error, { data: DerivativesLatest[], stats: DerivativesStats }>({
-    queryKey: ['derivatives', 'mock'], // Use 'mock' instead of 'all' to ensure fresh data
+    queryKey: ['derivatives', 'hardcoded-mock'], // Use a unique key for the hardcoded mock data
     queryFn: () => fetchDerivatives(sector),
     refetchInterval: 30000, // Refetch every 30 seconds
     select: (data) => {
