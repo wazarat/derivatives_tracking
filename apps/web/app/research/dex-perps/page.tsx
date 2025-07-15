@@ -1,35 +1,37 @@
 import React from "react";
-import { SectorDashboard } from "@/components/research/SectorDashboard";
-import { onchainPerpColumns, DexPerpInstrument } from "@/config/columns";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import { ChevronRightIcon } from "@radix-ui/react-icons";
+import { DerivativesPanel } from '../../metrics/components/DerivativesPanel';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { Metadata } from 'next';
 
 // Force dynamic rendering to prevent SSG from hitting Supabase during build
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: 'DEX Perpetuals | Research',
+  description: 'Decentralized Exchange Perpetuals Research Dashboard',
+};
+
 export default function DexPerpsPage() {
   return (
-    <div className="container py-6 space-y-6">
-      <Breadcrumb>
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/">Home</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research">Research</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research/dex-perps">DEX Perpetuals</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
+    <div className="container mx-auto py-6">
+      <div className="flex items-center space-x-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/research">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+      </div>
       
-      <SectorDashboard<DexPerpInstrument>
-        sector="dex-perps"
-        title="DEX Perpetuals"
-        description="Analyze on-chain perpetual markets across decentralized exchanges. Compare funding rates, TVL, utilization, and protocol fees."
-        columns={onchainPerpColumns}
-      />
+      <h1 className="text-3xl font-bold mb-6">DEX Perpetuals Research</h1>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <DerivativesPanel sector="dex-perps" title="DEX Perpetuals Market Overview" />
+        
+        {/* Additional research components can be added here */}
+      </div>
     </div>
   );
 }

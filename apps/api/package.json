@@ -1,0 +1,36 @@
+{
+  "name": "canhav-api",
+  "version": "1.0.0",
+  "description": "CanHav API and workers",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.2",
+    "cron": "^3.1.6",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/cron": "^2.4.0",
+    "@types/dotenv": "^8.2.0",
+    "@types/jest": "^29.5.10",
+    "@types/node": "^20.10.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:workers": "jest --testPathPattern=tests/workers",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node app/index.ts",
+    "worker:cmc": "ts-node app/workers/cmcDerivativesWorker.ts",
+    "worker:hyperliquid": "ts-node app/workers/hyperliquidDerivativesWorker.ts",
+    "worker:dydx": "ts-node app/workers/dydxDerivativesWorker.ts",
+    "cron": "ts-node app/workers/cron.ts"
+  },
+  "author": "",
+  "license": "ISC"
+}

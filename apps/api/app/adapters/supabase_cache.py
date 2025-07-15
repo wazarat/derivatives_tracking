@@ -313,3 +313,17 @@ class SupabaseCache:
         """Cache coin details data"""
         key = self._get_coin_details_cache_key(symbol, convert)
         return await self.set(key, data, expiry_seconds)
+
+_supabase_cache_instance = None
+
+def get_supabase_cache() -> SupabaseCache:
+    """
+    FastAPI dependency that returns a singleton instance of SupabaseCache.
+    
+    Returns:
+        SupabaseCache: A shared instance of the SupabaseCache class
+    """
+    global _supabase_cache_instance
+    if _supabase_cache_instance is None:
+        _supabase_cache_instance = SupabaseCache()
+    return _supabase_cache_instance

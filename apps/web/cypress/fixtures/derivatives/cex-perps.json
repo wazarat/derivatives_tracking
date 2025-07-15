@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "ts": "2023-07-15T12:00:00Z",
+    "exchange": "Binance",
+    "symbol": "BTCUSDT",
+    "contract_type": "perpetual",
+    "oi_usd": 1000000000,
+    "funding_rate": 0.0001,
+    "volume_24h": 5000000000,
+    "index_price": 50000
+  },
+  {
+    "id": 2,
+    "ts": "2023-07-15T12:00:00Z",
+    "exchange": "Binance",
+    "symbol": "ETHUSDT",
+    "contract_type": "perpetual",
+    "oi_usd": 500000000,
+    "funding_rate": 0.0002,
+    "volume_24h": 2500000000,
+    "index_price": 3000
+  },
+  {
+    "id": 3,
+    "ts": "2023-07-15T12:00:00Z",
+    "exchange": "Bybit",
+    "symbol": "BTCUSDT",
+    "contract_type": "perpetual",
+    "oi_usd": 800000000,
+    "funding_rate": -0.0001,
+    "volume_24h": 4000000000,
+    "index_price": 50000
+  },
+  {
+    "id": 4,
+    "ts": "2023-07-15T12:00:00Z",
+    "exchange": "Bybit",
+    "symbol": "ETHUSDT",
+    "contract_type": "perpetual",
+    "oi_usd": 400000000,
+    "funding_rate": -0.0002,
+    "volume_24h": 2000000000,
+    "index_price": 3000
+  },
+  {
+    "id": 5,
+    "ts": "2023-07-15T12:00:00Z",
+    "exchange": "OKX",
+    "symbol": "BTC-USDT-SWAP",
+    "contract_type": "perpetual",
+    "oi_usd": 700000000,
+    "funding_rate": 0.0003,
+    "volume_24h": 3500000000,
+    "index_price": 50000
+  }
+]

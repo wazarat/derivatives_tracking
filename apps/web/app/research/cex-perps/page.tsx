@@ -1,35 +1,39 @@
-import React from "react";
-import { SectorDashboard } from "@/components/research/SectorDashboard";
-import { fundingColumns, PerpetualInstrument } from "@/config/columns";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import { ChevronRightIcon } from "@radix-ui/react-icons";
+"use client";
 
 // Force dynamic rendering to prevent SSG from hitting Supabase during build
 export const dynamic = "force-dynamic";
 
+import React from "react";
+import { Metadata } from 'next';
+import { DerivativesPanel } from '../../metrics/components/DerivativesPanel';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'CEX Perpetuals | Research',
+  description: 'Centralized Exchange Perpetual Futures Research Dashboard',
+};
+
 export default function CexPerpsPage() {
   return (
-    <div className="container py-6 space-y-6">
-      <Breadcrumb>
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/">Home</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research">Research</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research/cex-perps">CEX Perpetuals</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
+    <div className="container mx-auto py-6">
+      <div className="flex items-center space-x-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/research">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Research
+          </Link>
+        </Button>
+      </div>
       
-      <SectorDashboard<PerpetualInstrument>
-        sector="cex-perps"
-        title="CEX Perpetuals"
-        description="Analyze funding rate opportunities across centralized exchanges. Compare funding rates, open interest, and skew metrics."
-        columns={fundingColumns}
-      />
+      <h1 className="text-3xl font-bold mb-6">CEX Perpetuals Research</h1>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <DerivativesPanel sector="cex-perps" title="CEX Perpetuals Market Overview" />
+        
+        {/* Additional research components can be added here */}
+      </div>
     </div>
   );
 }

@@ -1,35 +1,37 @@
-import React from "react";
-import { SectorDashboard } from "@/components/research/SectorDashboard";
-import { basisColumns, FuturesInstrument } from "@/config/columns";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import { ChevronRightIcon } from "@radix-ui/react-icons";
+"use client";
 
-// Force dynamic rendering to prevent SSG from hitting Supabase during build
+import { Metadata } from 'next';
+import { DerivativesPanel } from '../../metrics/components/DerivativesPanel';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: 'CEX Futures | Research',
+  description: 'Centralized Exchange Futures Research Dashboard',
+};
 
 export default function CexFuturesPage() {
   return (
-    <div className="container py-6 space-y-6">
-      <Breadcrumb>
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/">Home</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research">Research</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <ChevronRightIcon className="h-4 w-4" />
-          <BreadcrumbLink href="/research/cex-futures">CEX Futures</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
+    <div className="container mx-auto py-6">
+      <div className="flex items-center space-x-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/research">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+      </div>
       
-      <SectorDashboard<FuturesInstrument>
-        sector="cex-futures"
-        title="CEX Futures"
-        description="Analyze basis trading opportunities across centralized exchanges. Compare basis, term structure, and liquidity metrics."
-        columns={basisColumns}
-      />
+      <h1 className="text-3xl font-bold mb-6">CEX Futures Research</h1>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <DerivativesPanel sector="cex-futures" title="CEX Futures Market Overview" />
+        
+        {/* Additional research components can be added here */}
+      </div>
     </div>
   );
 }
