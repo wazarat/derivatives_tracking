@@ -20,7 +20,7 @@ export function AppHeader({ showMobileNav = true }: AppHeaderProps) {
   }
   
   // Don't show the header on auth pages
-  if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
+  if (pathname && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
     return null;
   }
 
