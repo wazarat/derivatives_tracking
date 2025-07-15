@@ -2,6 +2,12 @@
 
 import * as React from "react"
 
+// Create a shared context for tabs
+const TabsContext = React.createContext<{
+  value?: string
+  onValueChange?: (value: string) => void
+}>({})
+
 export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultValue?: string
   value?: string
@@ -24,13 +30,15 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
     }
     
     return (
-      <div 
-        ref={ref} 
-        className={`tabs ${className || ""}`} 
-        data-state={selectedTab ? "active" : "inactive"}
-        data-value={selectedTab}
-        {...props} 
-      />
+      <TabsContext.Provider value={{ value: selectedTab, onValueChange: handleValueChange }}>
+        <div 
+          ref={ref} 
+          className={`tabs ${className || ""}`} 
+          data-state={selectedTab ? "active" : "inactive"}
+          data-value={selectedTab}
+          {...props} 
+        />
+      </TabsContext.Provider>
     )
   }
 )
@@ -56,9 +64,7 @@ export interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonE
 
 const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
   ({ className, value, ...props }, ref) => {
-    const context = React.useContext(
-      React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({})
-    )
+    const context = React.useContext(TabsContext)
     
     const isSelected = context.value === value
     
@@ -83,9 +89,7 @@ export interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
   ({ className, value, ...props }, ref) => {
-    const context = React.useContext(
-      React.createContext<{ value?: string }>({})
-    )
+    const context = React.useContext(TabsContext)
     
     const isSelected = context.value === value
     

@@ -14,7 +14,7 @@ import { CorrelationsTab } from "@/components/research/CorrelationsTab";
 const sectors = [
   {
     id: "cex-futures",
-    name: "CEX Futures",
+    name: "CEX Futures Traders",
     description: "Basis trading opportunities on centralized exchanges",
     icon: "📈",
     href: "/research/cex-futures",
@@ -22,7 +22,7 @@ const sectors = [
   },
   {
     id: "cex-perps",
-    name: "CEX Perpetuals",
+    name: "CEX Perpetual Traders",
     description: "Funding rate opportunities on centralized exchanges",
     icon: "🔄",
     href: "/research/cex-perps",
@@ -30,7 +30,7 @@ const sectors = [
   },
   {
     id: "dex-perps",
-    name: "DEX Perpetuals",
+    name: "DEX Perpetual Traders",
     description: "On-chain perpetual swap opportunities",
     icon: "⛓️",
     href: "/research/dex-perps",
@@ -38,18 +38,50 @@ const sectors = [
   },
   {
     id: "options",
-    name: "Options",
+    name: "Crypto Options Traders",
     description: "Volatility and options trading strategies",
     icon: "🎯",
-    href: "/research/options",
+    href: "",
+    disabled: true,
+  },
+  {
+    id: "basis-funding-arb",
+    name: "Basis / Funding-Arb Desks",
+    description: "Arbitrage opportunities between markets",
+    icon: "💹",
+    href: "",
+    disabled: true,
+  },
+  {
+    id: "defi-leverage",
+    name: "DeFi Leverage & Yield Loopers",
+    description: "Leveraged yield farming strategies",
+    icon: "🔄",
+    href: "",
+    disabled: true,
+  },
+  {
+    id: "copy-trade",
+    name: "Copy-Trade & Social-Signal Followers",
+    description: "Social trading opportunities and signals",
+    icon: "👥",
+    href: "",
     disabled: true,
   },
   {
     id: "spot",
-    name: "Spot Markets",
+    name: "Spot-Only Token Traders",
     description: "Spot market trading opportunities",
     icon: "💱",
-    href: "/research/spot",
+    href: "",
+    disabled: true,
+  },
+  {
+    id: "etf-trackers",
+    name: "U.S. Crypto-ETF Trackers",
+    description: "Track and analyze crypto ETF performance",
+    icon: "📊",
+    href: "",
     disabled: true,
   },
 ];
@@ -72,8 +104,6 @@ export default function ResearchPage() {
           <TabsTrigger value="sectors">Sectors</TabsTrigger>
           <TabsTrigger value="trending">Trending Trades</TabsTrigger>
           <TabsTrigger value="correlations">Correlations</TabsTrigger>
-          <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
-          <TabsTrigger value="ai-assistant" disabled>AI Assistant</TabsTrigger>
         </TabsList>
 
         {/* Sectors Tab */}
@@ -124,28 +154,6 @@ export default function ResearchPage() {
         {/* Correlations Tab */}
         <TabsContent value="correlations">
           <CorrelationsTab />
-        </TabsContent>
-
-        {/* Analytics Tab (Disabled) */}
-        <TabsContent value="analytics">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* AI Assistant Tab (Disabled) */}
-        <TabsContent value="ai-assistant">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
