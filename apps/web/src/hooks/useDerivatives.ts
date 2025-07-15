@@ -33,9 +33,9 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
   console.log('Fetching derivatives data for sector:', sector);
   
   try {
-    // Try with window.location.origin to ensure correct base URL in all environments
+    // Use mock endpoint for testing
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const apiUrl = `${baseUrl}/api/derivatives/all`;
+    const apiUrl = `${baseUrl}/api/derivatives/mock`;
     console.log('Fetching from URL:', apiUrl);
     
     const response = await fetch(apiUrl);
@@ -103,7 +103,7 @@ export function useDerivatives(sector: DerivativesSector) {
   console.log('useDerivatives hook called with sector:', sector);
   
   return useQuery<DerivativesLatest[], Error, { data: DerivativesLatest[], stats: DerivativesStats }>({
-    queryKey: ['derivatives', 'all'], // Use 'all' instead of sector to ensure same data for all pages
+    queryKey: ['derivatives', 'mock'], // Use 'mock' instead of 'all' to ensure fresh data
     queryFn: () => fetchDerivatives(sector),
     refetchInterval: 30000, // Refetch every 30 seconds
     select: (data) => {
