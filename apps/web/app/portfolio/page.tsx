@@ -146,8 +146,8 @@ export default function PortfolioPage() {
       <div className="border-b">
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <h1 className="text-lg font-semibold">Portfolio</h1>
-          <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
-            <DialogTrigger asChild>
+          <Dialog>
+            <DialogTrigger>
               <Button size="sm" className="flex items-center gap-1">
                 <Plus className="h-4 w-4" /> Add Asset
               </Button>
