@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getWatchlistAssets, clearWatchlist } from '@/services/watchlistService';
+import { getWatchlist, removeFromWatchlist } from '@/services/watchlistService';
 import { Asset } from '@/types/assets';
 import { AssetCard } from '@/components/assets/AssetCard';
 import { Button } from '@/components/ui/button';
@@ -34,29 +34,69 @@ export default function WatchlistPage() {
     loadWatchlist();
   }, []);
 
-  const loadWatchlist = () => {
+  const loadWatchlist = async () => {
     if (typeof window !== 'undefined') {
       setIsLoading(true);
-      const assets = getWatchlistAssets();
-      setWatchlistAssets(assets);
-      setIsLoading(false);
+      try {
+        const assets = await getWatchlist();
+        setWatchlistAssets(assets);
+      } catch (error) {
+        console.error('Failed to load watchlist:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load your watchlist. Please try again.',
+          variant: 'destructive',
+          duration: 3000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   // Handle clearing the watchlist
-  const handleClearWatchlist = () => {
-    clearWatchlist();
-    setWatchlistAssets([]);
-    toast({
-      title: 'Watchlist Cleared',
-      description: 'All assets have been removed from your watchlist.',
-      duration: 3000,
-    });
+  const handleClearWatchlist = async () => {
+    try {
+      // Since removeFromWatchlist requires an ID, we need to handle each item individually
+      const promises = watchlistAssets.map(asset => removeFromWatchlist(asset.id));
+      await Promise.all(promises);
+      
+      setWatchlistAssets([]);
+      toast({
+        title: 'Watchlist Cleared',
+        description: 'All assets have been removed from your watchlist.',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to clear watchlist:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to clear watchlist. Please try again.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    }
   };
 
   // Handle asset removal from watchlist (triggered by WatchlistButton)
-  const handleAssetRemoved = (assetId: string) => {
-    setWatchlistAssets(prev => prev.filter(asset => asset.id !== assetId));
+  const handleAssetRemoved = async (assetId: string) => {
+    try {
+      await removeFromWatchlist(assetId);
+      setWatchlistAssets(prev => prev.filter(asset => asset.id !== assetId));
+      toast({
+        title: 'Asset Removed',
+        description: 'Asset has been removed from your watchlist.',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to remove asset:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove asset. Please try again.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    }
   };
 
   // Don't render anything during SSR
