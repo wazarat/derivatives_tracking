@@ -27,16 +27,21 @@ export default function Home() {
               </div>
               {!isSignedIn && (
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/sign-up">
-                    <Button size="lg" className="gap-1.5">
+                  <Button size="lg" className="gap-1.5" asChild>
+                    <Link href="/sign-up">
                       Get Started <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/research">
-                    <Button size="lg" variant="outline">
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link href="/sign-in">
+                      Sign In
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild>
+                    <Link href="/research">
                       Explore Markets
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               )}
             </div>
@@ -210,16 +215,21 @@ export default function Home() {
             </div>
             {!isSignedIn && (
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/sign-up">
-                  <Button size="lg" className="gap-1.5">
+                <Button size="lg" className="gap-1.5" asChild>
+                  <Link href="/sign-up">
                     Get Started <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/research">
-                  <Button size="lg" variant="outline">
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/sign-in">
+                    Sign In
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/research">
                     Explore Markets
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             )}
           </div>
