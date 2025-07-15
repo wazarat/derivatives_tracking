@@ -59,7 +59,6 @@ export default function WatchlistPage() {
   ]);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newAssetSymbol, setNewAssetSymbol] = useState("");
   
   const formatCurrency = (value: number) => {
@@ -141,7 +140,6 @@ export default function WatchlistPage() {
     
     setWatchlistItems(items => [...items, newAsset]);
     setNewAssetSymbol("");
-    setIsAddDialogOpen(false);
     
     toast({
       title: "Added to watchlist",
@@ -179,8 +177,8 @@ export default function WatchlistPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
+          <Dialog>
+            <DialogTrigger>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Add Asset
               </Button>
@@ -207,7 +205,7 @@ export default function WatchlistPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setNewAssetSymbol("")}>
                   Cancel
                 </Button>
                 <Button onClick={addToWatchlist}>Add</Button>
@@ -370,7 +368,7 @@ function WatchlistRow({ item, onToggleStar, onRemove }: WatchlistRowProps) {
       </td>
       <td className="p-4 align-middle text-right">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger>
             <Button variant="ghost" size="icon">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
