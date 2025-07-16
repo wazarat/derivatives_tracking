@@ -64,8 +64,8 @@ export function NotificationDropdown() {
   }, [user]);
 
   // Handle marking a notification as read
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.id) return;
+  const handleNotificationClick = async (notification: Notification | null) => {
+    if (!notification || !notification.id) return;
     
     // Navigate to link if provided
     if (notification.link) {
@@ -74,13 +74,17 @@ export function NotificationDropdown() {
     
     // Mark as read if not already
     if (!notification.isRead) {
-      const success = await markNotificationAsRead(notification.id);
-      if (success) {
-        setNotifications(prev => 
-          prev.map(n => 
-            n.id === notification.id ? { ...n, isRead: true } : n
-          )
-        );
+      try {
+        const success = await markNotificationAsRead(notification.id);
+        if (success) {
+          setNotifications(prev => 
+            prev.map(n => 
+              n.id === notification.id ? { ...n, isRead: true } : n
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
       }
     }
     
@@ -114,7 +118,9 @@ export function NotificationDropdown() {
   };
 
   // Format notification date
-  const formatNotificationDate = (date: Date) => {
+  const formatNotificationDate = (date: Date | null) => {
+    if (!date) return '';
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
@@ -146,7 +152,9 @@ export function NotificationDropdown() {
   };
 
   // Get icon for notification type
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: Notification['type'] | null) => {
+    if (!type) return <div className="h-2 w-2 rounded-full bg-gray-500" />;
+    
     switch (type) {
       case 'portfolio_update':
         return <div className="h-2 w-2 rounded-full bg-blue-500" />;
@@ -218,7 +226,7 @@ export function NotificationDropdown() {
           <ScrollArea className="h-[300px]">
             {notifications.map((notification) => (
               <DropdownMenuItem
-                key={notification.id}
+                key={notification.id || `notification-${Math.random()}`}
                 className={`flex items-start p-3 cursor-pointer ${
                   !notification.isRead ? 'bg-muted/50' : ''
                 }`}

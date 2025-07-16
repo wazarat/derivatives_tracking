@@ -26,7 +26,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   isLoaded: boolean;
-  isSignedIn: boolean | undefined;
+  isSignedIn: boolean;
   userId: string | null;
   sessionId: string | null;
   userClerk: any | null;
@@ -36,9 +36,9 @@ interface AuthContextType {
   signUpButtonClerk: typeof SignUpButton;
   userButtonClerk: typeof UserButton;
   userProfileClerk: typeof UserProfile;
-};
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -75,11 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    isLoaded: isLoaded ?? false,
-    isSignedIn: isSignedIn ?? false,
-    userId: userId ?? null,
-    sessionId: sessionId ?? null,
-    userClerk: userClerk ?? null,
+    isLoaded: isLoaded !== undefined ? isLoaded : false,
+    isSignedIn: isSignedIn !== undefined ? isSignedIn : false,
+    userId: userId !== undefined ? userId : null,
+    sessionId: sessionId !== undefined ? sessionId : null,
+    userClerk: userClerk !== undefined ? userClerk : null,
     signInClerk: SignIn,
     signUpClerk: SignUp,
     signInButtonClerk: SignInButton,
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

@@ -24,18 +24,24 @@ export function CookieConsentBanner() {
   const handleAccept = () => {
     setConsent(true);
     setIsVisible(false);
-    localStorage.setItem('has-seen-cookie-banner', 'true');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('has-seen-cookie-banner', 'true');
+    }
   };
 
   const handleDecline = () => {
     setConsent(false);
     setIsVisible(false);
-    localStorage.setItem('has-seen-cookie-banner', 'true');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('has-seen-cookie-banner', 'true');
+    }
   };
 
   const handleClose = () => {
     setIsVisible(false);
-    localStorage.setItem('has-seen-cookie-banner', 'true');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('has-seen-cookie-banner', 'true');
+    }
   };
 
   if (!isVisible) return null;
