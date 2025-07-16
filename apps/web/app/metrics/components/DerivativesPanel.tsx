@@ -4,6 +4,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DerivativesLatest } from '@/types/supabase';
 import { DerivativesSector, useDerivatives } from '@/hooks/useDerivatives';
 import { formatCurrency, formatCompactNumber, formatPercent } from '@/utils/format';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface DerivativesPanelProps {
   sector: DerivativesSector;
@@ -48,14 +56,8 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
   
   const { stats, data: contracts } = data;
   
-  // Sort contracts by open interest (descending)
-  const sortedContracts = [...contracts].sort((a, b) => b.oi_usd - a.oi_usd);
-  
-  // Get top 10 contracts by open interest
-  const topContracts = sortedContracts.slice(0, 10);
-  
-  // Calculate max OI for scaling the bars
-  const maxOi = Math.max(...topContracts.map(c => c.oi_usd));
+  // Sort contracts by volume_24h (descending)
+  const sortedContracts = [...contracts].sort((a, b) => b.volume_24h - a.volume_24h);
   
   return (
     <Card className="col-span-full">
@@ -91,29 +93,39 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
           </div>
         </div>
         
-        {/* Open Interest Bar Chart */}
-        <div className="mt-8">
-          <h3 className="text-lg font-medium mb-4">Top Contracts by Open Interest</h3>
-          <div className="space-y-2">
-            {topContracts.map((contract) => (
-              <div key={`${contract.exchange}-${contract.symbol}`} className="flex items-center">
-                <div className="w-24 truncate font-mono text-sm">
-                  {contract.symbol}
-                </div>
-                <div className="flex-1 mx-2">
-                  <div className="h-6 bg-muted rounded-sm overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${(contract.oi_usd / maxOi) * 100}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="w-24 text-right font-mono text-sm">
-                  {formatCompactNumber(contract.oi_usd)}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Derivatives Data Table */}
+        <div className="mt-8 overflow-x-auto">
+          <h3 className="text-lg font-medium mb-4">Derivatives Data (Sorted by Volume)</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Exchange</TableHead>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Contract Type</TableHead>
+                <TableHead className="text-right">Volume 24h</TableHead>
+                <TableHead className="text-right">Open Interest</TableHead>
+                <TableHead className="text-right">Index Price</TableHead>
+                <TableHead className="text-right">Funding Rate</TableHead>
+                <TableHead>Timestamp</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedContracts.slice(0, 20).map((contract) => (
+                <TableRow key={`${contract.exchange}-${contract.symbol}`}>
+                  <TableCell className="font-medium">{contract.exchange}</TableCell>
+                  <TableCell>{contract.symbol}</TableCell>
+                  <TableCell>{contract.contract_type}</TableCell>
+                  <TableCell className="text-right">{formatCompactNumber(contract.volume_24h)}</TableCell>
+                  <TableCell className="text-right">{formatCompactNumber(contract.oi_usd)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(contract.index_price)}</TableCell>
+                  <TableCell className="text-right">
+                    {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-xs">{new Date(contract.ts).toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
         
         {/* Funding Rate Heatmap (only for perpetuals) */}
