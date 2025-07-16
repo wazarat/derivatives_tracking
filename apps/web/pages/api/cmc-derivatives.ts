@@ -28,12 +28,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
+  // Enhanced logging for environment variables
+  console.log('Environment check:');
+  console.log('- NEXT_PUBLIC_SUPABASE_URL exists:', !!supabaseUrl);
+  console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseKey);
+  
+  if (supabaseUrl) {
+    console.log('- URL format check:', supabaseUrl.startsWith('https://') && supabaseUrl.includes('.supabase.co') ? 'valid' : 'invalid');
+  }
+  
   // Check if Supabase credentials are available
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing required environment variables for Supabase');
     return res.status(503).json({ 
       error: 'Database connection not available',
-      message: 'Missing required environment variables. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
+      message: 'Missing required environment variables. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.',
+      debug: {
+        urlExists: !!supabaseUrl,
+        keyExists: !!supabaseKey,
+        environment: process.env.NODE_ENV || 'unknown'
+      }
     });
   }
   
@@ -41,7 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Fetching derivatives data from Supabase...');
     
     // Create Supabase client
+    console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Log Supabase client details
+    console.log('Supabase client details:');
+    console.log('- URL:', supabaseUrl);
+    console.log('- Key:', supabaseKey.substring(0, 10) + '...'); // Mask the key for security
     
     // Get the latest timestamp from the cex_derivatives_instruments table
     console.log('Fetching latest timestamp...');
@@ -53,12 +73,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (latestTimestampError) {
       console.error('Error fetching latest timestamp:', latestTimestampError);
-      return res.status(500).json({ error: 'Failed to fetch latest timestamp' });
+      return res.status(500).json({ 
+        error: 'Failed to fetch latest timestamp',
+        details: latestTimestampError.message,
+        code: latestTimestampError.code
+      });
     }
 
     if (!latestTimestampData || latestTimestampData.length === 0) {
       console.log('No timestamp data found, returning empty array');
-      return res.status(200).json([]);
+      return res.status(200).json({
+        message: 'No data found in cex_derivatives_instruments table',
+        data: []
+      });
     }
 
     const latestTimestamp = latestTimestampData[0].ts;
@@ -73,7 +100,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) {
       console.error('Error fetching derivatives data:', error);
-      return res.status(500).json({ error: 'Failed to fetch derivatives data' });
+      return res.status(500).json({ 
+        error: 'Failed to fetch derivatives data',
+        details: error.message,
+        code: error.code
+      });
     }
 
     console.log(`Successfully fetched ${data?.length || 0} derivatives records`);
@@ -84,9 +115,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Limit to top 100 if needed
     const top100 = sortedData.slice(0, 100);
     
+    // Log the first few records for debugging
+    if (top100.length > 0) {
+      console.log('First record sample:', JSON.stringify(top100[0]));
+    }
+    
     return res.status(200).json(top100);
   } catch (error) {
     console.error('Unexpected error in API route:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+    });
   }
 }
