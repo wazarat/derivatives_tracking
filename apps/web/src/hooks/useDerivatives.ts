@@ -77,57 +77,69 @@ const mockData: DerivativesLatest[] = [
  * @returns Promise with the derivatives data
  */
 async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesLatest[]> {
-  console.log('Fetching derivatives data for sector:', sector);
+  console.log('🔍💡 [useDerivatives] Fetching derivatives data for sector:', sector);
+  console.log('🔍🌎 [useDerivatives] Environment:', process.env.NODE_ENV);
   
   try {
     // Use the pages/api endpoint instead of app/api
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const apiUrl = `${baseUrl}/api/cmc-derivatives`;
-    console.log('Fetching from URL:', apiUrl);
+    console.log('🔍📊 [useDerivatives] Fetching from URL:', apiUrl);
+    console.log('🔍📍 [useDerivatives] Window location:', typeof window !== 'undefined' ? window.location.href : 'No window');
     
-    // Log environment information
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Window location:', typeof window !== 'undefined' ? window.location.href : 'No window');
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const urlWithTimestamp = `${apiUrl}?_t=${timestamp}`;
+    console.log('🔍🕰️ [useDerivatives] URL with cache-busting:', urlWithTimestamp);
     
-    const response = await fetch(apiUrl);
+    const response = await fetch(urlWithTimestamp);
     
-    console.log('API response status:', response.status);
+    console.log('🔍📈 [useDerivatives] API response status:', response.status);
+    console.log('🔍📊 [useDerivatives] API response headers:', JSON.stringify(Object.fromEntries([...response.headers.entries()])));
     
     if (!response.ok) {
-      console.error('Error response:', response.statusText);
+      console.error('❌🚨 [useDerivatives] Error response:', response.statusText);
       // Try to get more details from the error response
       try {
         const errorData = await response.json();
-        console.error('Error details:', errorData);
+        console.error('❌📝 [useDerivatives] Error details:', errorData);
       } catch (e) {
-        console.error('Could not parse error response');
+        console.error('❌🤔 [useDerivatives] Could not parse error response');
       }
-      console.log('Falling back to mock data due to API error');
+      console.log('⚠️🚨 [useDerivatives] Falling back to mock data due to API error');
       return mockData; // Fallback to mock data on error
     }
     
     const data = await response.json();
-    console.log('Received data count:', data?.length || 0);
+    console.log('✅📈 [useDerivatives] Received data count:', data?.length || 0);
     
     if (!data || data.length === 0) {
-      console.log('No data returned from API, falling back to mock data');
+      console.log('⚠️📉 [useDerivatives] No data returned from API, falling back to mock data');
       return mockData; // Fallback to mock data if no data returned
     }
     
     // Log a sample of the data
     if (data.length > 0) {
-      console.log('Sample data item:', JSON.stringify(data[0]));
+      console.log('📊📁 [useDerivatives] Sample data item:', JSON.stringify(data[0]));
       
       // Log contract types for debugging - fixed TypeScript error with Array.from
       const contractTypes = Array.from(new Set(data.map(item => item.contract_type)));
-      console.log('Contract types in data:', contractTypes);
+      console.log('📊📊 [useDerivatives] Contract types in data:', contractTypes);
       
       // Count by contract type
       const contractTypeCounts = contractTypes.reduce((acc: Record<string, number>, type: string) => {
         acc[type] = data.filter(item => item.contract_type === type).length;
         return acc;
       }, {} as Record<string, number>);
-      console.log('Contract type counts:', contractTypeCounts);
+      console.log('📊📈 [useDerivatives] Contract type counts:', contractTypeCounts);
+      
+      // Count by exchange
+      const exchanges = Array.from(new Set(data.map(item => item.exchange)));
+      const exchangeCounts = exchanges.reduce((acc: Record<string, number>, exchange: string) => {
+        acc[exchange] = data.filter(item => item.exchange === exchange).length;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('📊📊 [useDerivatives] Exchange counts:', exchangeCounts);
     }
     
     // TEMPORARY FIX: For now, show all data on both pages
@@ -142,8 +154,8 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     
     return data;
   } catch (error) {
-    console.error('Error fetching derivatives data:', error);
-    console.log('Falling back to mock data due to error');
+    console.error('❌🚨 [useDerivatives] Error fetching derivatives data:', error);
+    console.log('⚠️🚨 [useDerivatives] Falling back to mock data due to error');
     return mockData; // Fallback to mock data on error
   }
 }
@@ -189,15 +201,15 @@ export function calculateDerivativesStats(data: DerivativesLatest[]): Derivative
  * @returns Query result with derivatives data and stats
  */
 export function useDerivatives(sector: DerivativesSector) {
-  console.log('useDerivatives hook called with sector:', sector);
+  console.log('🔍💡 [useDerivatives] Hook called with sector:', sector);
   
   return useQuery<DerivativesLatest[], Error, { data: DerivativesLatest[], stats: DerivativesStats }>({
     queryKey: ['derivatives', 'cmc-api', sector], // Include sector in the key for proper caching
     queryFn: () => fetchDerivatives(sector),
     refetchInterval: 30000, // Refetch every 30 seconds
     select: (data) => {
-      console.log('Received data from query:', data);
-      console.log('Is mock data?', data === mockData ? 'YES - Using mock data' : 'NO - Using real data');
+      console.log('✅📈 [useDerivatives] Received data from query:', data?.length || 0, 'items');
+      console.log('⚠️🤔 [useDerivatives] Is mock data?', data === mockData ? 'YES - Using mock data' : 'NO - Using real data');
       return {
         data,
         stats: calculateDerivativesStats(data),

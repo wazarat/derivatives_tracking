@@ -29,17 +29,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   
   // Enhanced logging for environment variables
-  console.log('Environment check:');
-  console.log('- NEXT_PUBLIC_SUPABASE_URL exists:', !!supabaseUrl);
-  console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseKey);
+  console.log('🔍 [API] Environment check:');
+  console.log('🔑 [API] - NEXT_PUBLIC_SUPABASE_URL exists:', !!supabaseUrl);
+  console.log('🔑 [API] - SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseKey);
   
   if (supabaseUrl) {
-    console.log('- URL format check:', supabaseUrl.startsWith('https://') && supabaseUrl.includes('.supabase.co') ? 'valid' : 'invalid');
+    console.log('🔍 [API] - URL format check:', supabaseUrl.startsWith('https://') && supabaseUrl.includes('.supabase.co') ? '✅ valid' : '❌ invalid');
   }
   
   // Check if Supabase credentials are available
   if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing required environment variables for Supabase');
+    console.error('❌ [API] Missing required environment variables for Supabase');
     return res.status(503).json({ 
       error: 'Database connection not available',
       message: 'Missing required environment variables. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.',
@@ -52,19 +52,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   
   try {
-    console.log('Fetching derivatives data from Supabase...');
+    console.log('🔄 [API] Fetching derivatives data from Supabase...');
     
     // Create Supabase client
-    console.log('Creating Supabase client...');
+    console.log('🔌 [API] Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Log Supabase client details
-    console.log('Supabase client details:');
-    console.log('- URL:', supabaseUrl);
-    console.log('- Key:', supabaseKey.substring(0, 10) + '...'); // Mask the key for security
+    console.log('ℹ️ [API] Supabase client details:');
+    console.log('🌐 [API] - URL:', supabaseUrl);
+    console.log('🔑 [API] - Key:', supabaseKey.substring(0, 10) + '...'); // Mask the key for security
     
     // Get the latest timestamp from the cex_derivatives_instruments table
-    console.log('Fetching latest timestamp...');
+    console.log('⏰ [API] Fetching latest timestamp...');
     const { data: latestTimestampData, error: latestTimestampError } = await supabase
       .from('cex_derivatives_instruments')
       .select('ts')
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(1);
 
     if (latestTimestampError) {
-      console.error('Error fetching latest timestamp:', latestTimestampError);
+      console.error('❌ [API] Error fetching latest timestamp:', latestTimestampError);
       return res.status(500).json({ 
         error: 'Failed to fetch latest timestamp',
         details: latestTimestampError.message,
@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!latestTimestampData || latestTimestampData.length === 0) {
-      console.log('No timestamp data found, returning empty array');
+      console.log('⚠️ [API] No timestamp data found, returning empty array');
       return res.status(200).json({
         message: 'No data found in cex_derivatives_instruments table',
         data: []
@@ -89,17 +89,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const latestTimestamp = latestTimestampData[0].ts;
-    console.log('Latest timestamp:', latestTimestamp);
+    console.log('⏰ [API] Latest timestamp:', latestTimestamp);
 
     // Fetch all derivatives data from the latest timestamp
-    console.log('Fetching derivatives data for timestamp:', latestTimestamp);
+    console.log('🔄 [API] Fetching derivatives data for timestamp:', latestTimestamp);
     const { data, error } = await supabase
       .from('cex_derivatives_instruments')
       .select('*')
       .eq('ts', latestTimestamp);
 
     if (error) {
-      console.error('Error fetching derivatives data:', error);
+      console.error('❌ [API] Error fetching derivatives data:', error);
       return res.status(500).json({ 
         error: 'Failed to fetch derivatives data',
         details: error.message,
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log(`Successfully fetched ${data?.length || 0} derivatives records`);
+    console.log(`✅ [API] Successfully fetched ${data?.length || 0} derivatives records`);
     
     // Sort by volume_24h (descending) instead of oi_usd since oi_usd values are all 0
     const sortedData = data?.sort((a, b) => b.volume_24h - a.volume_24h) || [];
@@ -117,12 +117,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Log the first few records for debugging
     if (top100.length > 0) {
-      console.log('First record sample:', JSON.stringify(top100[0]));
+      console.log('📊 [API] First record sample:', JSON.stringify(top100[0]));
     }
     
     return res.status(200).json(top100);
   } catch (error) {
-    console.error('Unexpected error in API route:', error);
+    console.error('❌ [API] Unexpected error in API route:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error',
