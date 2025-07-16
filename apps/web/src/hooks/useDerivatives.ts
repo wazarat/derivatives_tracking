@@ -81,18 +81,25 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
   console.log('[useDerivatives] Environment:', process.env.NODE_ENV);
   
   try {
-    // Use the pages/api endpoint instead of app/api
+    // Get the base URL for the API request
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const apiUrl = `${baseUrl}/api/cmc-derivatives`;
-    console.log('[useDerivatives] Fetching from URL:', apiUrl);
-    console.log('[useDerivatives] Window location:', typeof window !== 'undefined' ? window.location.href : 'No window');
     
-    // Add timestamp to prevent caching
+    // Add timestamp and sector to prevent caching
     const timestamp = new Date().getTime();
-    const urlWithTimestamp = `${apiUrl}?_t=${timestamp}`;
-    console.log('[useDerivatives] URL with cache-busting:', urlWithTimestamp);
+    const urlWithParams = `${apiUrl}?_t=${timestamp}&sector=${sector}`;
     
-    const response = await fetch(urlWithTimestamp);
+    console.log('[useDerivatives] Fetching from URL:', urlWithParams);
+    
+    // Make the API request with proper headers
+    const response = await fetch(urlWithParams, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     
     console.log('[useDerivatives] API response status:', response.status);
     
@@ -122,33 +129,23 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
       console.log('[useDerivatives] Sample data item:', JSON.stringify(data[0]));
       
       // Log contract types for debugging
-      const contractTypes = Array.from(new Set(data.map(item => item.contract_type)));
+      const contractTypes = Array.from(new Set(data.map((item: any) => item.contract_type)));
       console.log('[useDerivatives] Contract types in data:', contractTypes);
       
       // Count by contract type
       const contractTypeCounts = contractTypes.reduce((acc: Record<string, number>, type: string) => {
-        acc[type] = data.filter(item => item.contract_type === type).length;
+        acc[type] = data.filter((item: any) => item.contract_type === type).length;
         return acc;
       }, {} as Record<string, number>);
       console.log('[useDerivatives] Contract type counts:', contractTypeCounts);
       
       // Count by exchange
-      const exchanges = Array.from(new Set(data.map(item => item.exchange)));
+      const exchanges = Array.from(new Set(data.map((item: any) => item.exchange)));
       const exchangeCounts = exchanges.reduce((acc: Record<string, number>, exchange: string) => {
-        acc[exchange] = data.filter(item => item.exchange === exchange).length;
+        acc[exchange] = data.filter((item: any) => item.exchange === exchange).length;
         return acc;
       }, {} as Record<string, number>);
       console.log('[useDerivatives] Exchange counts:', exchangeCounts);
-    }
-    
-    // TEMPORARY FIX: For now, show all data on both pages
-    // Later we'll need to fix the worker to properly categorize contracts
-    if (sector === 'cex-perps') {
-      // For now, show all derivatives data on the perps page
-      return data;
-    } else if (sector === 'cex-futures') {
-      // For now, show all derivatives data on the futures page
-      return data;
     }
     
     return data;
