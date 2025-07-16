@@ -137,10 +137,13 @@ export default function AssetDetailPage() {
   const formatPrice = (price: number | undefined) => {
     if (price === undefined) return '-';
     
-    if (price < 0.01) return price.toFixed(6);
-    if (price < 1) return price.toFixed(4);
-    if (price < 10) return price.toFixed(2);
-    return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (price < 0.01) {
+      return price.toFixed(6);
+    } else if (price < 1) {
+      return price.toFixed(4);
+    } else {
+      return price.toFixed(2);
+    }
   };
 
   // Format percentage for display
@@ -153,17 +156,20 @@ export default function AssetDetailPage() {
   const formatLargeNumber = (num: number | undefined) => {
     if (num === undefined) return '-';
     
-    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
+    if (num >= 1e9) {
+      return `$${(num / 1e9).toFixed(2)}B`;
+    } else if (num >= 1e6) {
+      return `$${(num / 1e6).toFixed(2)}M`;
+    } else if (num >= 1e3) {
+      return `$${(num / 1e3).toFixed(2)}K`;
+    }
     return `$${num.toFixed(2)}`;
   };
 
   // Determine price change color
   const getPriceChangeColor = (value: number | undefined) => {
     if (value === undefined) return 'text-muted-foreground';
-    return value >= 0 ? 'text-green-500' : 'text-red-500';
+    return value > 0 ? 'text-green-500' : value < 0 ? 'text-red-500' : 'text-muted-foreground';
   };
 
   // Get risk tier color

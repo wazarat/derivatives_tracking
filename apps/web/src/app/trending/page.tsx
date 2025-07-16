@@ -158,7 +158,8 @@ export default function TrendingPage() {
   }, [activeTab, toast]);
 
   // Format date for display
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'recently';
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 

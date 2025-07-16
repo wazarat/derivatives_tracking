@@ -24,7 +24,7 @@ export default function PublicPortfolioPage({
   const router = useRouter();
   const { toast } = useToast();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch all available assets
@@ -88,14 +88,14 @@ export default function PublicPortfolioPage({
   };
 
   // Calculate portfolio metrics
-  const apy = portfolio ? calculatePortfolioAPY(portfolio) : 0;
-  const risk = portfolio ? calculatePortfolioRisk(portfolio) : 0;
+  const apy = portfolio ? calculatePortfolioAPY(portfolio) : null;
+  const risk = portfolio ? calculatePortfolioRisk(portfolio) : null;
 
   // Prepare data for pie chart
   const chartData = portfolio?.entries?.map(entry => ({
-    name: entry.asset.name,
-    value: entry.allocation,
-    color: getAssetColor(entry.asset.sector.toString()),
+    name: entry.asset?.name ?? 'Unknown',
+    value: entry.allocation ?? 0,
+    color: getAssetColor(entry.asset?.sector?.toString() ?? 'Unknown'),
   })) || [];
 
   // Loading state
@@ -223,7 +223,10 @@ export default function PublicPortfolioPage({
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Expected APY</p>
-                  <h3 className="text-3xl font-bold">{apy ? apy.toFixed(2) : '0.00'}%</h3>
+                  <h3 className="text-3xl font-bold">{apy !== null ? `${(apy * 100).toFixed(2)}%` : '0.00%'}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Annual percentage yield
+                  </p>
                 </div>
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <span className="text-primary text-xl font-semibold">APY</span>
@@ -237,7 +240,7 @@ export default function PublicPortfolioPage({
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Risk Score</p>
-                  <h3 className="text-3xl font-bold">{risk ? risk.toFixed(1) : '0.0'}</h3>
+                  <h3 className="text-3xl font-bold">{risk !== null ? risk.toFixed(1) : '0.0'}</h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     {getRiskLabel(risk)}
                   </p>
@@ -273,24 +276,24 @@ export default function PublicPortfolioPage({
         <CardContent>
           <div className="space-y-4">
             {portfolio.entries && portfolio.entries.map((entry, index) => (
-              <div key={entry.asset.id}>
+              <div key={entry.asset?.id ?? `asset-${index}`}>
                 {index > 0 && <Separator className="my-4" />}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div 
                       className="h-10 w-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: getAssetColor(entry.asset.sector.toString()) + '33' }}
+                      style={{ backgroundColor: getAssetColor(entry.asset?.sector?.toString() ?? 'Unknown') + '33' }}
                     >
-                      <span className="text-sm font-medium">{entry.asset.symbol}</span>
+                      <span className="text-sm font-medium">{entry.asset?.symbol ?? '-'}</span>
                     </div>
                     <div>
-                      <h4 className="font-medium">{entry.asset.name}</h4>
-                      <p className="text-sm text-muted-foreground">{entry.asset.sector.toString()}</p>
+                      <h4 className="font-medium">{entry.asset?.name ?? 'Unknown Asset'}</h4>
+                      <p className="text-sm text-muted-foreground">{entry.asset?.sector?.toString() ?? 'Unknown'}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{entry.allocation}%</p>
-                    <p className="text-sm text-muted-foreground">APY: {entry.asset.apy ? entry.asset.apy.toFixed(2) : '0.00'}%</p>
+                    <p className="font-medium">{entry.allocation ?? 0}%</p>
+                    <p className="text-sm text-muted-foreground">APY: {entry.asset?.apy !== undefined ? `${entry.asset.apy.toFixed(2)}%` : '0.00%'}</p>
                   </div>
                 </div>
               </div>

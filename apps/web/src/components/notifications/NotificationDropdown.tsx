@@ -30,9 +30,9 @@ export function NotificationDropdown() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
   // Count unread notifications
   const unreadCount = notifications.filter(n => !n.isRead).length;

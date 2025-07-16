@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getWatchlist, removeFromWatchlist } from '@/services/watchlistService';
+import { getWatchlist, removeFromWatchlist, WatchlistItem } from '@/services/watchlistService';
 import { Asset } from '@/types/assets';
 import { AssetCard } from '@/components/assets/AssetCard';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 
 export default function WatchlistPage() {
-  const [watchlistAssets, setWatchlistAssets] = useState<Asset[]>([]);
+  const [watchlistAssets, setWatchlistAssets] = useState<WatchlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
@@ -82,7 +82,7 @@ export default function WatchlistPage() {
   const handleAssetRemoved = async (assetId: string) => {
     try {
       await removeFromWatchlist(assetId);
-      setWatchlistAssets(prev => prev.filter(asset => asset.id !== assetId));
+      setWatchlistAssets(prev => prev.filter(item => item.instrument_id !== assetId));
       toast({
         title: 'Asset Removed',
         description: 'Asset has been removed from your watchlist.',
@@ -163,17 +163,31 @@ export default function WatchlistPage() {
       {/* Watchlist content */}
       {watchlistAssets.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {watchlistAssets.map(asset => (
-            <AssetCard 
-              key={asset.id} 
-              asset={asset} 
-              onWatchlistChange={
-                () => {
-                  handleAssetRemoved(asset.id);
+          {watchlistAssets.map(item => {
+            // Create a compatible Asset object from WatchlistItem
+            const asset: Asset = {
+              id: item.instrument_id,
+              name: item.instrument_name,
+              ticker: item.instrument_symbol,
+              sector: item.venue as any, // Using venue as sector
+              risk_tier: 'balanced' as any, // Default risk tier
+              is_active: true,
+              created_at: item.created_at,
+              updated_at: item.created_at,
+            };
+            
+            return (
+              <AssetCard 
+                key={item.id} 
+                asset={asset} 
+                onWatchlistChange={
+                  () => {
+                    handleAssetRemoved(item.instrument_id);
+                  }
                 }
-              }
-            />
-          ))}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">

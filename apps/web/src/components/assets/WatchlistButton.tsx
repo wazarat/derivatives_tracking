@@ -25,8 +25,8 @@ export function WatchlistButton({
   onToggle,
 }: WatchlistButtonProps) {
   const { toast } = useToast();
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isWatchlisted, setIsWatchlisted] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   // Check if asset is in watchlist on mount (client-side only)
   useEffect(() => {

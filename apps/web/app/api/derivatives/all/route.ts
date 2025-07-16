@@ -10,13 +10,37 @@ console.log('API route initialized with:');
 console.log('- Supabase URL exists:', !!supabaseUrl);
 console.log('- Supabase key exists:', !!supabaseKey);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Check for required environment variables
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing required environment variables for Supabase');
+}
+
+// Create client only if credentials are available
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export const dynamic = 'force-dynamic'; // No caching
 export const revalidate = 0; // Disable cache completely
 
 export async function GET() {
   console.log('GET request received at /api/derivatives/all');
+  
+  // Check if Supabase client is available
+  if (!supabase) {
+    console.error('Supabase client not initialized - missing credentials');
+    return NextResponse.json(
+      { 
+        error: 'Database connection not available',
+        message: 'Missing required environment variables. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
+      }, 
+      { 
+        status: 503,
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+          'Surrogate-Control': 'no-store',
+        }
+      }
+    );
+  }
   
   try {
     // Get the latest timestamp from the cex_derivatives_instruments table

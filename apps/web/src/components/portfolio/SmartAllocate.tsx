@@ -29,7 +29,7 @@ export function SmartAllocate() {
   const [riskPreference, setRiskPreference] = useState<RiskPreference>(RiskPreference.Moderate);
   const [investmentGoal, setInvestmentGoal] = useState<InvestmentGoal>(InvestmentGoal.BalancedGrowth);
   const [investmentHorizon, setInvestmentHorizon] = useState<InvestmentHorizon>(InvestmentHorizon.MediumTerm);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [allocation, setAllocation] = useState<AllocationResponse | null>(null);
   
@@ -40,7 +40,7 @@ export function SmartAllocate() {
   });
 
   // Extract the actual asset array from the response
-  const assets = assetResponse?.data || [];
+  const assets = assetResponse?.data ?? [];
 
   // Handle form submission
   const handleGenerateAllocation = async () => {
@@ -424,25 +424,25 @@ export function SmartAllocate() {
             <div>
               <h3 className="text-lg font-medium mb-2">Asset Allocation</h3>
               <div className="space-y-2">
-                {allocation.portfolio.entries.map((entry) => (
+                {allocation.portfolio.entries.map((entry, index) => (
                   <div 
-                    key={entry.assetId} 
+                    key={entry.assetId || `asset-${index}`} 
                     className="flex items-center justify-between p-3 bg-card border rounded-lg"
                   >
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-2 h-full min-h-[2rem] rounded-full"
                         style={{ 
-                          backgroundColor: `hsl(${parseInt(entry.assetId, 16) % 360}, 70%, 50%)`,
+                          backgroundColor: `hsl(${parseInt(entry.assetId || '0', 16) % 360}, 70%, 50%)`,
                           opacity: 0.7
                         }}
                       />
                       <div>
-                        <div className="font-medium">{entry.asset.name}</div>
-                        <div className="text-sm text-muted-foreground">{entry.asset.ticker}</div>
+                        <div className="font-medium">{entry.asset?.name ?? 'Unknown'}</div>
+                        <div className="text-sm text-muted-foreground">{entry.asset?.ticker ?? '-'}</div>
                       </div>
                     </div>
-                    <div className="text-lg font-bold">{entry.allocation.toFixed(1)}%</div>
+                    <div className="text-lg font-bold">{(entry.allocation ?? 0).toFixed(1)}%</div>
                   </div>
                 ))}
               </div>

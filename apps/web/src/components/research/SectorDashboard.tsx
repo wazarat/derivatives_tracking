@@ -46,7 +46,7 @@ export function SectorDashboard<TData extends Instrument>({
   columns,
 }: SectorDashboardProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Fetch data from API
   const { data: instruments = [], isLoading, error } = useQuery({
@@ -59,9 +59,9 @@ export function SectorDashboard<TData extends Instrument>({
     return instruments.filter((instrument: any) => {
       const searchStr = searchQuery.toLowerCase();
       return (
-        instrument.symbol.toLowerCase().includes(searchStr) ||
-        instrument.name.toLowerCase().includes(searchStr) ||
-        instrument.venue.toLowerCase().includes(searchStr)
+        instrument.symbol?.toLowerCase().includes(searchStr) ||
+        instrument.name?.toLowerCase().includes(searchStr) ||
+        instrument.venue?.toLowerCase().includes(searchStr)
       );
     });
   }, [instruments, searchQuery]);

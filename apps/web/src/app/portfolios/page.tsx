@@ -34,7 +34,7 @@ export default function PortfoliosPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [portfolioToDelete, setPortfolioToDelete] = useState<string | null>(null);
 
   // Load portfolios from localStorage

@@ -12,7 +12,7 @@ interface RadioGroupProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
   ({ className, value, onValueChange, defaultValue, children, ...props }, ref) => {
-    const [selectedValue, setSelectedValue] = React.useState(value || defaultValue || "");
+    const [selectedValue, setSelectedValue] = React.useState<string>(value ?? defaultValue ?? "");
     
     React.useEffect(() => {
       if (value !== undefined) {

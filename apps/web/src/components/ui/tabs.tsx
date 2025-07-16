@@ -16,7 +16,7 @@ export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
   ({ className, defaultValue, value, onValueChange, ...props }, ref) => {
-    const [selectedTab, setSelectedTab] = React.useState(value || defaultValue || "")
+    const [selectedTab, setSelectedTab] = React.useState<string>(value ?? defaultValue ?? "")
     
     React.useEffect(() => {
       if (value !== undefined) {

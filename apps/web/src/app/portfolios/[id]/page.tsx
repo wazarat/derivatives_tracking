@@ -29,8 +29,8 @@ export default function EditPortfolioPage({
 
   // Get portfolio data
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
-  const [portfolioError, setPortfolioError] = useState(false);
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState<boolean>(true);
+  const [portfolioError, setPortfolioError] = useState<boolean>(false);
 
   useEffect(() => {
     // Load portfolio from localStorage
@@ -91,7 +91,7 @@ export default function EditPortfolioPage({
 
       <PortfolioBuilder 
         availableAssets={assets}
-        initialPortfolio={portfolio ?? undefined}
+        initialPortfolio={portfolio || undefined}
         onSave={() => {
           router.push('/portfolios');
         }}

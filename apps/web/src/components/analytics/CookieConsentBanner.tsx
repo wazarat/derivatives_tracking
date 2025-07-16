@@ -7,14 +7,14 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 export function CookieConsentBanner() {
   const { hasConsent, setConsent } = useAnalytics();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState<boolean>(false);
 
   useEffect(() => {
     // Show banner if consent hasn't been given yet
     const timer = setTimeout(() => {
       if (typeof window !== 'undefined') {
         const hasSeenBanner = localStorage.getItem('has-seen-cookie-banner') === 'true';
-        setIsVisible(!hasSeenBanner && !hasConsent);
+        setIsVisible(!hasSeenBanner && hasConsent !== true);
       }
     }, 1000);
 

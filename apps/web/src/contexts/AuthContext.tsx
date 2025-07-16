@@ -42,7 +42,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { isLoaded, isSignedIn, userId, sessionId } = useClerkAuth();
   const { user: userClerk } = useUser();
 
@@ -68,18 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
     signIn,
     signUp,
     signOut,
-    isLoaded,
-    isSignedIn,
-    userId,
-    sessionId,
-    userClerk,
+    isLoaded: isLoaded ?? false,
+    isSignedIn: isSignedIn ?? false,
+    userId: userId ?? null,
+    sessionId: sessionId ?? null,
+    userClerk: userClerk ?? null,
     signInClerk: SignIn,
     signUpClerk: SignUp,
     signInButtonClerk: SignInButton,

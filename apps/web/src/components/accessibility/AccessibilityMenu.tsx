@@ -27,10 +27,10 @@ import { useTheme } from 'next-themes';
 
 export function AccessibilityMenu() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [fontSize, setFontSize] = useState(100);
-  const [highContrast, setHighContrast] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [fontSize, setFontSize] = useState<number>(100);
+  const [highContrast, setHighContrast] = useState<boolean>(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
 
   // Only show the component after mounting to avoid hydration mismatch
   useEffect(() => {
@@ -62,24 +62,24 @@ export function AccessibilityMenu() {
   // Apply high contrast
   const applyHighContrast = (enabled: boolean) => {
     if (typeof document !== 'undefined') {
-      if (enabled) {
+      if (enabled === true) {
         document.documentElement.classList.add('high-contrast');
       } else {
         document.documentElement.classList.remove('high-contrast');
       }
-      localStorage.setItem('accessibility-high-contrast', enabled.toString());
+      localStorage.setItem('accessibility-high-contrast', String(enabled ?? false));
     }
   };
 
   // Apply reduced motion
   const applyReducedMotion = (enabled: boolean) => {
     if (typeof document !== 'undefined') {
-      if (enabled) {
+      if (enabled === true) {
         document.documentElement.classList.add('reduce-motion');
       } else {
         document.documentElement.classList.remove('reduce-motion');
       }
-      localStorage.setItem('accessibility-reduced-motion', enabled.toString());
+      localStorage.setItem('accessibility-reduced-motion', String(enabled ?? false));
     }
   };
 

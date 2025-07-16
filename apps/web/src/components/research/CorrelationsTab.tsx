@@ -70,7 +70,7 @@ export function CorrelationsTab() {
     }
     
     // Generate 30 days of mock price data
-    const mockData = [];
+    const mockData: any[] = [];
     const today = new Date();
     let basePrice = 1000;
     let secondBasePrice = 1200;

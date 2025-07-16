@@ -21,8 +21,8 @@ interface WatchlistTableProps {
 
 export function WatchlistTable({ marketData }: WatchlistTableProps) {
   const { watchlist, isLoading, addAsset, updateAllocation, removeAsset, totalValue } = useWatchlist();
-  const [newSymbol, setNewSymbol] = useState('');
-  const [newValue, setNewValue] = useState('');
+  const [newSymbol, setNewSymbol] = useState<string>('');
+  const [newValue, setNewValue] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // Handle adding a new asset
@@ -89,7 +89,7 @@ export function WatchlistTable({ marketData }: WatchlistTableProps) {
   // Get current price for a symbol
   const getCurrentPrice = (symbol: string): number => {
     const asset = marketData.find(item => item.symbol === symbol);
-    return asset ? asset.price : 0;
+    return asset?.price ?? 0;
   };
 
   return (
@@ -151,7 +151,7 @@ export function WatchlistTable({ marketData }: WatchlistTableProps) {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={item.usd_value}
+                        value={item.usd_value !== null && item.usd_value !== undefined ? item.usd_value : 0}
                         onChange={(e) => handleUpdateAllocation(item.symbol, e.target.value)}
                         className="w-24"
                       />

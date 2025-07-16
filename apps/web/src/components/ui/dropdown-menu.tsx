@@ -11,7 +11,7 @@ interface DropdownMenuProps {
 }
 
 const DropdownMenu = ({ children, open, onOpenChange }: DropdownMenuProps) => {
-  const [isOpen, setIsOpen] = React.useState(open || false);
+  const [isOpen, setIsOpen] = React.useState<boolean>(open ?? false);
   
   React.useEffect(() => {
     if (open !== undefined) {

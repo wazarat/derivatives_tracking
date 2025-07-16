@@ -63,7 +63,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     if (hasConsent && user) {
       identifyUser(user.id, {
         email: user.email,
-        created_at: (user as any).createdAt || new Date().toISOString(),
+        created_at: ((user as any).createdAt as string | undefined) ?? new Date().toISOString(),
       });
     } else if (!user) {
       resetUser();
