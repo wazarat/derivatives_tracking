@@ -225,11 +225,31 @@ function processMarketPairsData(marketPairs: any[], exchangeSlug: string, catego
     // Extract base and quote symbols
     const [baseSymbol, quoteSymbol] = (pair.market_pair || '').split('/');
     
+    // Determine contract type based on available data
+    let contractType = 'derivatives'; // Default fallback
+    
+    // Try to determine if it's perpetual or futures based on market pair name
+    const marketPairLower = (pair.market_pair || '').toLowerCase();
+    if (marketPairLower.includes('perp') || 
+        marketPairLower.includes('perpetual') || 
+        pair.perpetual === true) {
+      contractType = 'perpetual';
+    } else if (marketPairLower.includes('futures') || 
+              marketPairLower.includes('quarterly') || 
+              marketPairLower.includes('weekly') ||
+              marketPairLower.includes('monthly') ||
+              marketPairLower.match(/\d{4}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/) || // Date format YYYYMMDD
+              marketPairLower.match(/\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/) || // Date format YYMMDD
+              pair.contract_type === 'futures') {
+      contractType = 'futures';
+    }
+    
     // For debugging
     if (isDebugMode) {
       console.log(`Processing ${pair.market_pair}: `, {
         exchange: exchangeSlug,
         category,
+        contract_type: contractType,
         oi_usd: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
         volume_24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,
       });
@@ -238,7 +258,7 @@ function processMarketPairsData(marketPairs: any[], exchangeSlug: string, catego
     return {
       exchange: exchangeSlug,
       symbol: pair.market_pair || 'Unknown',
-      contract_type: 'derivatives', // Use a single contract type for all
+      contract_type: contractType,
       oi_usd: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
       funding_rate: pair.funding_rate || 0,
       volume_24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,

@@ -6,7 +6,7 @@ interface DerivativesLatest {
   ts: string;
   exchange: string;
   symbol: string;
-  contract_type: 'perpetual' | 'futures';
+  contract_type: 'perpetual' | 'futures' | 'derivatives';
   oi_usd: number;
   funding_rate: number | null;
   volume_24h: number;
@@ -117,13 +117,27 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     // Log a sample of the data
     if (data.length > 0) {
       console.log('Sample data item:', JSON.stringify(data[0]));
+      
+      // Log contract types for debugging - fixed TypeScript error with Array.from
+      const contractTypes = Array.from(new Set(data.map(item => item.contract_type)));
+      console.log('Contract types in data:', contractTypes);
+      
+      // Count by contract type
+      const contractTypeCounts = contractTypes.reduce((acc: Record<string, number>, type: string) => {
+        acc[type] = data.filter(item => item.contract_type === type).length;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('Contract type counts:', contractTypeCounts);
     }
     
-    // Filter by contract_type if sector is specified
+    // TEMPORARY FIX: For now, show all data on both pages
+    // Later we'll need to fix the worker to properly categorize contracts
     if (sector === 'cex-perps') {
-      return data.filter(item => item.contract_type === 'perpetual');
+      // For now, show all derivatives data on the perps page
+      return data;
     } else if (sector === 'cex-futures') {
-      return data.filter(item => item.contract_type === 'futures');
+      // For now, show all derivatives data on the futures page
+      return data;
     }
     
     return data;
