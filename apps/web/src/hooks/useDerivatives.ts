@@ -6,7 +6,7 @@ interface DerivativesLatest {
   ts: string;
   exchange: string;
   symbol: string;
-  contract_type: 'perpetual' | 'futures' | 'derivatives';
+  contract_type: 'derivatives';
   oi_usd: number;
   funding_rate: number | null;
   volume_24h: number;
@@ -30,7 +30,7 @@ const mockData: DerivativesLatest[] = [
     ts: new Date().toISOString(),
     exchange: 'binance',
     symbol: 'BTCUSDT',
-    contract_type: 'perpetual',
+    contract_type: 'derivatives',
     oi_usd: 1000000000,
     funding_rate: 0.0001,
     volume_24h: 5000000000,
@@ -41,7 +41,7 @@ const mockData: DerivativesLatest[] = [
     ts: new Date().toISOString(),
     exchange: 'binance',
     symbol: 'ETHUSDT',
-    contract_type: 'perpetual',
+    contract_type: 'derivatives',
     oi_usd: 500000000,
     funding_rate: 0.0002,
     volume_24h: 2500000000,
@@ -52,7 +52,7 @@ const mockData: DerivativesLatest[] = [
     ts: new Date().toISOString(),
     exchange: 'okx',
     symbol: 'BTC-USDT-SWAP',
-    contract_type: 'perpetual',
+    contract_type: 'derivatives',
     oi_usd: 800000000,
     funding_rate: -0.0001,
     volume_24h: 4000000000,
@@ -63,7 +63,7 @@ const mockData: DerivativesLatest[] = [
     ts: new Date().toISOString(),
     exchange: 'bybit',
     symbol: 'BTCUSDT',
-    contract_type: 'futures',
+    contract_type: 'derivatives',
     oi_usd: 600000000,
     funding_rate: null,
     volume_24h: 3000000000,
@@ -117,38 +117,33 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     }
     
     const data = await response.json();
-    console.log('[useDerivatives] Received data count:', data?.length || 0);
+    console.log('[useDerivatives] Received data count:', data?.data?.length || 0);
     
-    if (!data || data.length === 0) {
+    if (!data || !data.data || data.data.length === 0) {
       console.log('[useDerivatives] No data returned from API, falling back to mock data');
       return mockData; // Fallback to mock data if no data returned
     }
     
+    // Ensure all contracts are treated as 'derivatives'
+    const normalizedData = data.data.map((item: any) => ({
+      ...item,
+      contract_type: 'derivatives'
+    }));
+    
     // Log a sample of the data
-    if (data.length > 0) {
-      console.log('[useDerivatives] Sample data item:', JSON.stringify(data[0]));
-      
-      // Log contract types for debugging
-      const contractTypes = Array.from(new Set(data.map((item: any) => item.contract_type)));
-      console.log('[useDerivatives] Contract types in data:', contractTypes);
-      
-      // Count by contract type
-      const contractTypeCounts = contractTypes.reduce((acc: Record<string, number>, type: string) => {
-        acc[type] = data.filter((item: any) => item.contract_type === type).length;
-        return acc;
-      }, {} as Record<string, number>);
-      console.log('[useDerivatives] Contract type counts:', contractTypeCounts);
+    if (normalizedData.length > 0) {
+      console.log('[useDerivatives] Sample data item:', JSON.stringify(normalizedData[0]));
       
       // Count by exchange
-      const exchanges = Array.from(new Set(data.map((item: any) => item.exchange)));
-      const exchangeCounts = exchanges.reduce((acc: Record<string, number>, exchange: string) => {
-        acc[exchange] = data.filter((item: any) => item.exchange === exchange).length;
-        return acc;
-      }, {} as Record<string, number>);
+      const exchanges = Array.from(new Set(normalizedData.map((item: any) => item.exchange)));
+      const exchangeCounts: Record<string, number> = {};
+      exchanges.forEach(exchange => {
+        exchangeCounts[exchange as string] = normalizedData.filter((item: any) => item.exchange === exchange).length;
+      });
       console.log('[useDerivatives] Exchange counts:', exchangeCounts);
     }
     
-    return data;
+    return normalizedData;
   } catch (error) {
     console.error('[useDerivatives] Error fetching derivatives data:', error);
     console.log('[useDerivatives] Falling back to mock data due to error');
@@ -174,13 +169,11 @@ export function calculateDerivativesStats(data: DerivativesLatest[]): Derivative
   const totalOpenInterest = data.reduce((sum, item) => sum + item.oi_usd, 0);
   const totalVolume24h = data.reduce((sum, item) => sum + item.volume_24h, 0);
   
-  // Calculate average funding rate only for perpetual contracts with non-null funding rates
-  const perpetuals = data.filter(item => 
-    item.contract_type === 'perpetual' && item.funding_rate !== null
-  );
+  // Calculate average funding rate for all contracts with non-null funding rates
+  const contractsWithFundingRate = data.filter(item => item.funding_rate !== null);
   
-  const averageFundingRate = perpetuals.length > 0
-    ? perpetuals.reduce((sum, item) => sum + (item.funding_rate || 0), 0) / perpetuals.length
+  const averageFundingRate = contractsWithFundingRate.length > 0
+    ? contractsWithFundingRate.reduce((sum, item) => sum + (item.funding_rate || 0), 0) / contractsWithFundingRate.length
     : null;
   
   return {

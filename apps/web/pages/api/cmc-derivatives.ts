@@ -11,7 +11,7 @@ interface ProcessedDerivative {
   ts: string;
   exchange: string;
   symbol: string;
-  contract_type: 'perpetual' | 'futures';
+  contract_type: 'derivatives';
   oi_usd: number;
   funding_rate: number | null;
   volume_24h: number;
@@ -40,9 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  // Get the sector from the query parameters
+  // Get the sector from the query parameters (but we'll ignore it for filtering)
   const sector = req.query.sector as string | undefined;
   console.log('🔍 [API] Requested sector:', sector || 'none specified');
+  console.log('🔍 [API] Note: All contracts are treated as derivatives regardless of sector');
   
   // Enhanced logging for environment variables
   console.log('🔍 [API] Environment check:');
@@ -111,26 +112,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('⏰ [API] Latest timestamp:', latestTimestamp);
 
     // Fetch all derivatives data from the latest timestamp
-    console.log('🔄 [API] Fetching derivatives data for timestamp:', latestTimestamp);
-    let query = supabase
+    // No filtering by contract_type - treat all as derivatives
+    console.log('🔄 [API] Fetching all derivatives data for timestamp:', latestTimestamp);
+    const { data, error, count } = await supabase
       .from('cex_derivatives_instruments')
       .select('*')
       .eq('ts', latestTimestamp);
-    
-    // Apply filtering based on sector if provided
-    if (sector === 'cex-perps') {
-      console.log('🔍 [API] Filtering for perpetual contracts');
-      query = query.eq('contract_type', 'perpetual');
-    } else if (sector === 'cex-futures') {
-      console.log('🔍 [API] Filtering for futures contracts');
-      query = query.eq('contract_type', 'futures');
-    } else {
-      console.log('🔍 [API] No sector filter applied, returning all contract types');
-    }
-    
-    // Execute the query
-    console.log('🔄 [API] Executing Supabase query...');
-    const { data, error, count } = await query;
 
     if (error) {
       console.error('❌ [API] Error fetching derivatives data:', error);
@@ -146,12 +133,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (data && data.length > 0) {
       // Count contract types for debugging
-      const contractTypes = Array.from(new Set(data.map(item => item.contract_type)));
+      const contractTypes = Array.from(new Set(data.map(item => 'derivatives')));
       console.log('📊 [API] Contract types in result:', contractTypes);
       
       const contractTypeCounts: Record<string, number> = {};
       contractTypes.forEach(type => {
-        contractTypeCounts[type] = data.filter(item => item.contract_type === type).length;
+        contractTypeCounts[type] = data.length;
       });
       console.log('📊 [API] Contract type counts:', contractTypeCounts);
       
@@ -182,14 +169,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Add metadata to the response
     const responseData = {
-      data: top100,
+      data: top100.map(item => ({ ...item, contract_type: 'derivatives' })),
       meta: {
         timestamp: latestTimestamp,
         totalRecords: data?.length || 0,
         returnedRecords: top100.length,
         sector: sector || 'all',
         sortedBy: 'volume_24h',
-        requestTime: new Date().toISOString()
+        requestTime: new Date().toISOString(),
+        contractTypes: ['derivatives']
       }
     };
     
