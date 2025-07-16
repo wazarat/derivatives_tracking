@@ -97,7 +97,11 @@ export function SiteHeader() {
           <UserButton afterSignOutUrl="/" />
           <Sheet>
             <SheetTrigger>
-              <Button variant="ghost" size="icon" className="ml-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="ml-2"
+              >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
@@ -110,7 +114,7 @@ export function SiteHeader() {
                     href={route.href}
                     className={cn(
                       "text-lg font-medium transition-colors hover:text-primary",
-                      pathname && route.href === pathname
+                      route.href === pathname
                         ? "text-primary"
                         : "text-muted-foreground"
                     )}

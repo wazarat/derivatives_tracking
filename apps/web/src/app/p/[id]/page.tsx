@@ -14,7 +14,7 @@ import { useToast } from '../../../components/ui/use-toast';
 import { ArrowLeft, Copy, Loader2, Share2, User } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 export default function PublicPortfolioPage({
   params
@@ -39,7 +39,7 @@ export default function PublicPortfolioPage({
   // Load the public portfolio
   useEffect(() => {
     const loadPortfolio = async () => {
-      if (!params.id || !assets) return;
+      if (!params.id || assets.length === 0) return;
       
       setIsLoading(true);
       setError(null);
@@ -67,7 +67,7 @@ export default function PublicPortfolioPage({
       }
     };
     
-    if (assets) {
+    if (assets.length > 0) {
       loadPortfolio();
     }
   }, [params.id, assets]);
@@ -92,10 +92,10 @@ export default function PublicPortfolioPage({
   const risk = portfolio ? calculatePortfolioRisk(portfolio) : 0;
 
   // Prepare data for pie chart
-  const chartData = portfolio?.entries.map(entry => ({
+  const chartData = portfolio?.entries?.map(entry => ({
     name: entry.asset.name,
     value: entry.allocation,
-    color: getAssetColor(entry.asset.sector),
+    color: getAssetColor(entry.asset.sector.toString()),
   })) || [];
 
   // Loading state
@@ -129,7 +129,7 @@ export default function PublicPortfolioPage({
   }
 
   // Error state
-  if (error) {
+  if (error || !portfolio) {
     return (
       <div className="container py-8">
         <div className="flex items-center mb-6">
@@ -140,12 +140,12 @@ export default function PublicPortfolioPage({
             </Link>
           </Button>
         </div>
-        <Card className="bg-muted/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <h3 className="text-xl font-medium mb-2">Portfolio Not Available</h3>
-            <p className="text-muted-foreground mb-6">{error}</p>
+        <Card>
+          <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[300px]">
+            <h2 className="text-xl font-semibold mb-2">Portfolio Not Found</h2>
+            <p className="text-muted-foreground mb-4">{error || 'This portfolio does not exist or is not public'}</p>
             <Button asChild>
-              <Link href="/portfolios">View Your Portfolios</Link>
+              <Link href="/portfolios">View All Portfolios</Link>
             </Button>
           </CardContent>
         </Card>
@@ -153,72 +153,71 @@ export default function PublicPortfolioPage({
     );
   }
 
-  // Success state with portfolio data
   return (
     <div className="container py-8">
-      <div className="flex items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" size="sm" className="gap-1" asChild>
           <Link href="/portfolios">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Link>
         </Button>
-      </div>
-      
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{portfolio?.name}</h1>
-          <div className="flex items-center gap-2 mt-2 text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>Shared {formatDate(portfolio?.updatedAt)}</span>
-          </div>
-        </div>
-        <Button variant="outline" onClick={handleCopyLink} className="gap-2">
+        <Button variant="outline" size="sm" className="gap-1" onClick={handleCopyLink}>
           <Share2 className="h-4 w-4" />
-          Share Portfolio
+          Share
         </Button>
       </div>
       
-      {portfolio?.description && (
-        <p className="text-muted-foreground mb-8">{portfolio.description}</p>
-      )}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">{portfolio.name}</h1>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <User className="h-4 w-4" />
+          <span>{portfolio.userId ? `User ${portfolio.userId}` : 'Anonymous'}</span>
+          <span>•</span>
+          <span>Created {formatDate(portfolio.createdAt)}</span>
+        </div>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardTitle>Allocation</CardTitle>
-            <CardDescription>
-              {portfolio?.entries.length} assets in portfolio
-            </CardDescription>
+            <CardDescription>Asset distribution by percentage</CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}%`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    formatter={(value: number) => [`${value}%`, 'Allocation']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+          <CardContent>
+            <div className="h-[300px]">
+              {portfolio.entries && portfolio.entries.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => [`${value}%`, 'Allocation']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">No assets in portfolio</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
         
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex justify-between items-center">
@@ -273,20 +272,20 @@ export default function PublicPortfolioPage({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {portfolio?.entries.map((entry, index) => (
+            {portfolio.entries && portfolio.entries.map((entry, index) => (
               <div key={entry.asset.id}>
                 {index > 0 && <Separator className="my-4" />}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div 
                       className="h-10 w-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: getAssetColor(entry.asset.sector) + '33' }}
+                      style={{ backgroundColor: getAssetColor(entry.asset.sector.toString()) + '33' }}
                     >
                       <span className="text-sm font-medium">{entry.asset.symbol}</span>
                     </div>
                     <div>
                       <h4 className="font-medium">{entry.asset.name}</h4>
-                      <p className="text-sm text-muted-foreground">{entry.asset.sector}</p>
+                      <p className="text-sm text-muted-foreground">{entry.asset.sector.toString()}</p>
                     </div>
                   </div>
                   <div className="text-right">

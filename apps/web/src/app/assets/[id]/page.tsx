@@ -18,6 +18,17 @@ import { InfoTooltip } from '../../../components/ui/info-tooltip';
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
+  
+  // Add null check for params
+  if (!params || !params.id) {
+    return (
+      <div className="container mx-auto py-12 text-center">
+        <p className="text-destructive mb-4">Invalid asset ID</p>
+        <Button onClick={() => router.push('/assets')}>Go to Assets</Button>
+      </div>
+    );
+  }
+  
   const assetId = params.id as string;
 
   // Fetch asset details
@@ -122,204 +133,268 @@ export default function AssetDetailPage() {
     );
   }
 
+  // Format price for display
+  const formatPrice = (price: number | undefined) => {
+    if (price === undefined) return '-';
+    
+    if (price < 0.01) return price.toFixed(6);
+    if (price < 1) return price.toFixed(4);
+    if (price < 10) return price.toFixed(2);
+    return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
+
+  // Format percentage for display
+  const formatPercentage = (value: number | undefined) => {
+    if (value === undefined) return '-';
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  // Format large numbers (market cap, volume)
+  const formatLargeNumber = (num: number | undefined) => {
+    if (num === undefined) return '-';
+    
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
+    return `$${num.toFixed(2)}`;
+  };
+
+  // Determine price change color
+  const getPriceChangeColor = (value: number | undefined) => {
+    if (value === undefined) return 'text-muted-foreground';
+    return value >= 0 ? 'text-green-500' : 'text-red-500';
+  };
+
   // Get risk tier color
-  const riskColor = riskTierColors[asset.risk_tier];
-  
-  // Default logo if none provided
-  const logoUrl = asset.logo_url || '/assets/default-token.svg';
+  const getRiskColor = () => {
+    if (!asset.risk_tier) return 'bg-gray-200 dark:bg-gray-700';
+    return riskTierColors[asset.risk_tier] || 'bg-gray-200 dark:bg-gray-700';
+  };
+
+  // Get risk tier name
+  const getRiskTierName = () => {
+    if (!asset.risk_tier) return 'Unknown';
+    return riskTierDisplayNames[asset.risk_tier] || 'Unknown';
+  };
+
+  // Get sector display name
+  const getSectorDisplayName = () => {
+    if (!asset.sector) return 'Unknown';
+    return sectorDisplayNames[asset.sector.toString()] || asset.sector.toString();
+  };
+
+  const priceData = formatPriceData();
+  const volumeData = formatVolumeData();
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* Back button and actions */}
-      <div className="flex justify-between items-center mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={handleBack} 
-          className="flex items-center gap-1"
-        >
+    <div className="container mx-auto py-6 px-4 md:px-6">
+      <div className="flex items-center mb-6">
+        <Button variant="ghost" size="sm" className="gap-1" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4" />
-          Back to Assets
+          Back
         </Button>
-        
-        {asset && (
-          <WatchlistButton 
-            asset={asset}
-            variant="outline"
-            size="default"
-            showText={true}
-          />
-        )}
       </div>
-
-      {/* Asset header */}
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        <div className="relative h-24 w-24 rounded-full overflow-hidden border border-gray-200">
-          <Image 
-            src={logoUrl} 
-            alt={asset.name} 
-            fill 
-            className="object-cover"
-            onError={(e) => {
-              // Fallback to default image on error
-              const target = e.target as HTMLImageElement;
-              target.src = '/assets/default-token.svg';
-            }}
-          />
-        </div>
-
-        <div className="flex-1">
-          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-            <h1 className="text-3xl font-bold">{asset.name}</h1>
-            <span className="text-xl text-muted-foreground">{asset.ticker}</span>
-            <div 
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-              style={{ backgroundColor: `${riskColor}20`, color: riskColor }}
-            >
-              {riskTierDisplayNames[asset.risk_tier]}
+      
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          {asset.logo_url && (
+            <div className="relative h-12 w-12">
+              <Image
+                src={asset.logo_url}
+                alt={asset.name || 'Asset logo'}
+                fill
+                className="rounded-full object-contain"
+              />
             </div>
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-2 items-center">
-            <span className="px-3 py-1 bg-secondary rounded-md text-sm">
-              {sectorDisplayNames[asset.sector]}
-            </span>
-            
-            {asset.website && (
-              <a 
-                href={asset.website} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-              >
-                Website <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
-
-          {asset.description && (
-            <p className="mt-4 text-muted-foreground">{asset.description}</p>
           )}
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              {asset.name}
+              <span className="text-lg font-normal text-muted-foreground">
+                {asset.ticker}
+              </span>
+              <WatchlistButton asset={asset} />
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm text-muted-foreground">
+                {getSectorDisplayName()}
+              </span>
+              <span className="text-sm text-muted-foreground">•</span>
+              <span className={`text-sm px-2 py-0.5 rounded-full ${getRiskColor()} bg-opacity-20`}>
+                {getRiskTierName()} Risk
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end">
+          <div className="text-2xl font-bold">
+            {formatPrice(asset.market_data?.price_usd)}
+          </div>
+          <div className={`flex items-center ${getPriceChangeColor(asset.market_data?.percent_change_24h)}`}>
+            {formatPercentage(asset.market_data?.percent_change_24h)}
+            <span className="text-sm ml-1">(24h)</span>
+          </div>
         </div>
       </div>
-
-      {/* Risk score card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Risk Score
-              <InfoTooltip 
-                term="Composite Risk Score" 
-                context="Crypto asset risk assessment"
-                iconSize={16}
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingRiskScore ? (
-              <div className="flex items-center">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Loading...
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-muted-foreground">Market Cap</p>
+                <h3 className="text-xl font-bold">
+                  {formatLargeNumber(asset.market_data?.market_cap_usd)}
+                </h3>
               </div>
-            ) : (
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold">
-                  {riskScore?.score.toFixed(1) || '-'}
-                </span>
-                <span className="text-muted-foreground mb-1">/5</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Market data placeholders - in a real app, these would show actual data */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Current Price
-              <InfoTooltip 
-                term="Current Price" 
-                context="Crypto asset market data"
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold">
-                {asset.market_data?.price_usd 
-                  ? `$${asset.market_data.price_usd.toFixed(2)}` 
-                  : '-'}
-              </span>
-              {asset.market_data?.price_change_24h && (
-                <span className={`mb-1 ${asset.market_data.price_change_24h > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {asset.market_data.price_change_24h > 0 ? '+' : ''}
-                  {asset.market_data.price_change_24h.toFixed(2)}%
-                </span>
-              )}
             </div>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Market Cap
-              <InfoTooltip 
-                term="Market Cap" 
-                context="Cryptocurrency"
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold">
-                {asset.market_data?.market_cap 
-                  ? `$${(asset.market_data.market_cap / 1000000).toFixed(1)}M` 
-                  : '-'}
-              </span>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-muted-foreground">Volume (24h)</p>
+                <h3 className="text-xl font-bold">
+                  {formatLargeNumber(asset.market_data?.volume_24h_usd)}
+                </h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-muted-foreground">APY</p>
+                <h3 className="text-xl font-bold">
+                  {asset.market_data?.apy !== undefined 
+                    ? `${(asset.market_data.apy * 100).toFixed(2)}%` 
+                    : '-'}
+                </h3>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Tabs for different data views */}
-      <Tabs defaultValue="price" className="w-full">
+      
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="price">Price History</TabsTrigger>
-          <TabsTrigger value="volume">Volume History</TabsTrigger>
-          <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="price">Price Chart</TabsTrigger>
+          <TabsTrigger value="volume">Volume Chart</TabsTrigger>
+          <TabsTrigger value="metrics">Metrics</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="overview" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>About {asset.name}</CardTitle>
+              <CardDescription>Key information and description</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Description</h3>
+                <p className="text-muted-foreground">
+                  {asset.description || 'No description available.'}
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-2">Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Website</p>
+                    {asset.website ? (
+                      <a 
+                        href={asset.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        {asset.website}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <p>-</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Explorer</p>
+                    {asset.website ? (
+                      <a 
+                        href={asset.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        View on Explorer
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <p>-</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Launch Date</p>
+                    <p>{asset.created_at ? format(new Date(asset.created_at), 'MMMM d, yyyy') : '-'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Category</p>
+                    <p>{asset.sector ? sectorDisplayNames[asset.sector] : '-'}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
         
         <TabsContent value="price" className="pt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Price History (30 Days)</CardTitle>
-              <CardDescription>Historical price data in USD</CardDescription>
+              <CardTitle>Price History</CardTitle>
+              <CardDescription>Last 30 days price movement</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingPriceMetrics ? (
-                <div className="flex justify-center items-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : priceMetrics?.metrics?.length ? (
-                <div className="h-64">
+              {priceData.length > 0 ? (
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={formatPriceData()}>
+                    <LineChart data={priceData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 12 }} 
+                        tickMargin={10}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }} 
+                        tickMargin={10}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip 
+                        formatter={(value) => [`$${value}`, 'Price']}
+                        labelFormatter={(label) => `Date: ${label}`}
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke="#3b82f6" 
-                        activeDot={{ r: 8 }} 
+                        stroke="#8884d8" 
+                        strokeWidth={2} 
+                        dot={false}
+                        activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   No price history available
                 </div>
               )}
@@ -330,33 +405,42 @@ export default function AssetDetailPage() {
         <TabsContent value="volume" className="pt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Volume History (30 Days)</CardTitle>
-              <CardDescription>24-hour trading volume in USD</CardDescription>
+              <CardTitle>Volume History</CardTitle>
+              <CardDescription>Last 30 days trading volume</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingVolumeMetrics ? (
-                <div className="flex justify-center items-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : volumeMetrics?.metrics?.length ? (
-                <div className="h-64">
+              {volumeData.length > 0 ? (
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={formatVolumeData()}>
+                    <LineChart data={volumeData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 12 }} 
+                        tickMargin={10}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }} 
+                        tickMargin={10}
+                        tickFormatter={(value) => formatLargeNumber(value)}
+                      />
+                      <Tooltip 
+                        formatter={(value) => [formatLargeNumber(value as number), 'Volume']}
+                        labelFormatter={(label) => `Date: ${label}`}
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="value" 
-                        stroke="#8b5cf6" 
-                        activeDot={{ r: 8 }} 
+                        stroke="#82ca9d" 
+                        strokeWidth={2} 
+                        dot={false}
+                        activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   No volume history available
                 </div>
               )}
@@ -388,7 +472,7 @@ export default function AssetDetailPage() {
                         Max Drawdown (30d)
                         <InfoTooltip term="Max Drawdown" context="30-day period" iconSize={14} />
                       </span>
-                      <span>{asset.market_data?.max_drawdown_30d 
+                      <span>{asset.market_data?.max_drawdown_30d !== undefined
                         ? `${(asset.market_data.max_drawdown_30d * 100).toFixed(2)}%` 
                         : '-'}</span>
                     </div>
@@ -411,7 +495,7 @@ export default function AssetDetailPage() {
                         Current APY
                         <InfoTooltip term="APY" context="Current annual percentage yield" iconSize={14} />
                       </span>
-                      <span>{asset.market_data?.apy 
+                      <span>{asset.market_data?.apy !== undefined
                         ? `${(asset.market_data.apy * 100).toFixed(2)}%` 
                         : '-'}</span>
                     </div>
@@ -420,7 +504,7 @@ export default function AssetDetailPage() {
                         30-Day APY
                         <InfoTooltip term="APY" context="30-day average" iconSize={14} />
                       </span>
-                      <span>{asset.market_data?.apy_30d 
+                      <span>{asset.market_data?.apy_30d !== undefined
                         ? `${(asset.market_data.apy_30d * 100).toFixed(2)}%` 
                         : '-'}</span>
                     </div>
@@ -429,7 +513,7 @@ export default function AssetDetailPage() {
                         90-Day APY
                         <InfoTooltip term="APY" context="90-day average" iconSize={14} />
                       </span>
-                      <span>{asset.market_data?.apy_90d 
+                      <span>{asset.market_data?.apy_90d !== undefined
                         ? `${(asset.market_data.apy_90d * 100).toFixed(2)}%` 
                         : '-'}</span>
                     </div>
