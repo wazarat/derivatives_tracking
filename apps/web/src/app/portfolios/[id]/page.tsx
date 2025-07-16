@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PortfolioBuilder } from '../../../components/portfolio/PortfolioBuilder';
-import { getPortfolioById, createEmptyPortfolio } from '../../../services/portfolioService';
+import { getPortfolioById, createEmptyPortfolio, Portfolio } from '../../../services/portfolioService';
 import { fetchAssets } from '../../../services/assetService';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -28,7 +28,7 @@ export default function EditPortfolioPage({
   const assets = assetsResponse?.data || [];
 
   // Get portfolio data
-  const [portfolio, setPortfolio] = useState(null);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [portfolioError, setPortfolioError] = useState(false);
 
