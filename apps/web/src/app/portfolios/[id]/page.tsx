@@ -91,7 +91,7 @@ export default function EditPortfolioPage({
 
       <PortfolioBuilder 
         availableAssets={assets}
-        initialPortfolio={portfolio}
+        initialPortfolio={portfolio ?? undefined}
         onSave={() => {
           router.push('/portfolios');
         }}
