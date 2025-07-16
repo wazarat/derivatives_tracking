@@ -78,8 +78,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(`Successfully fetched ${data?.length || 0} derivatives records`);
     
-    // Sort by open interest (descending)
-    const sortedData = data?.sort((a, b) => b.oi_usd - a.oi_usd) || [];
+    // Sort by volume_24h (descending) instead of oi_usd since oi_usd values are all 0
+    const sortedData = data?.sort((a, b) => b.volume_24h - a.volume_24h) || [];
     
     // Limit to top 100 if needed
     const top100 = sortedData.slice(0, 100);
