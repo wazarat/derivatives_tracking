@@ -43,14 +43,12 @@ export default function PortfolioPage({
       
       setIsLoadingPortfolio(true);
       try {
-        let portfolio = null;
-        
         // Try to load from Supabase first if user is logged in
         if (user && assets.length > 0) {
-          portfolio = await getPortfolioFromSupabase(portfolioId, assets);
+          const supabasePortfolio = await getPortfolioFromSupabase(portfolioId, assets);
           
           // Check if this portfolio belongs to the current user
-          if (portfolio && portfolio.userId !== user.id) {
+          if (supabasePortfolio && supabasePortfolio.userId !== user.id) {
             toast({
               title: "Access denied",
               description: "You don't have permission to edit this portfolio"
@@ -58,15 +56,20 @@ export default function PortfolioPage({
             router.push('/portfolios');
             return;
           }
+          
+          // If we found a valid portfolio, use it
+          if (supabasePortfolio) {
+            setInitialPortfolio(supabasePortfolio);
+            setIsLoadingPortfolio(false);
+            return;
+          }
         }
         
         // Fall back to localStorage if not found in Supabase
-        if (!portfolio) {
-          portfolio = getPortfolioById(portfolioId);
-        }
+        const localPortfolio = getPortfolioById(portfolioId);
         
-        if (portfolio) {
-          setInitialPortfolio(portfolio);
+        if (localPortfolio) {
+          setInitialPortfolio(localPortfolio);
         } else {
           toast({
             title: "Portfolio not found",
