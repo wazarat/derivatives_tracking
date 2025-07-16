@@ -43,7 +43,7 @@ export default function PortfolioPage({
       
       setIsLoadingPortfolio(true);
       try {
-        let portfolio = null;
+        let portfolio: Portfolio | null = null;
         
         // Try to load from Supabase first if user is logged in
         if (user && assets.length > 0) {
