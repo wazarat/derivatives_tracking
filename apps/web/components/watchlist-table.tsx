@@ -59,10 +59,20 @@ export function WatchlistTable({
 
   // Sort data based on current sort configuration
   const sortedData = [...data].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
+    // Handle undefined values safely
+    const valueA = a[sortConfig.key];
+    const valueB = b[sortConfig.key];
+    
+    // If either value is undefined, handle it gracefully
+    if (valueA === undefined && valueB === undefined) return 0;
+    if (valueA === undefined) return sortConfig.direction === "asc" ? -1 : 1;
+    if (valueB === undefined) return sortConfig.direction === "asc" ? 1 : -1;
+    
+    // Now compare the values normally
+    if (valueA < valueB) {
       return sortConfig.direction === "asc" ? -1 : 1;
     }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
+    if (valueA > valueB) {
       return sortConfig.direction === "asc" ? 1 : -1;
     }
     return 0;

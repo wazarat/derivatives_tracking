@@ -110,7 +110,7 @@ export function SiteHeader() {
                     href={route.href}
                     className={cn(
                       "text-lg font-medium transition-colors hover:text-primary",
-                      route.href === pathname
+                      pathname && route.href === pathname
                         ? "text-primary"
                         : "text-muted-foreground"
                     )}
