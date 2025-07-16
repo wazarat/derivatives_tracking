@@ -147,7 +147,7 @@ export default function PortfoliosPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8 mr-2" onClick={() => router.push(`/portfolios/${portfolio.id}`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setPortfolioToDelete(portfolio.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setPortfolioToDelete(portfolio.id ?? null)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
