@@ -43,8 +43,7 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
         <CardContent>
           <div className="space-y-4">
             <Skeleton className="h-[200px] w-full" />
-            <div className="grid grid-cols-3 gap-4">
-              <Skeleton className="h-[100px]" />
+            <div className="grid grid-cols-2 gap-4">
               <Skeleton className="h-[100px]" />
               <Skeleton className="h-[100px]" />
             </div>
@@ -65,19 +64,14 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Stats cards */}
-          <div className="bg-muted rounded-lg p-4">
-            <div className="text-sm text-muted-foreground mb-1">Total Open Interest</div>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalOpenInterest)}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Across {stats.contractCount} contracts
-            </div>
-          </div>
-          
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Stats cards - removed open interest */}
           <div className="bg-muted rounded-lg p-4">
             <div className="text-sm text-muted-foreground mb-1">24h Volume</div>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalVolume24h)}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Across {stats.contractCount} contracts
+            </div>
           </div>
           
           <div className="bg-muted rounded-lg p-4">
@@ -93,7 +87,7 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
           </div>
         </div>
         
-        {/* Derivatives Data Table */}
+        {/* Derivatives Data Table - removed open interest column */}
         <div className="mt-8 overflow-x-auto">
           <h3 className="text-lg font-medium mb-4">Derivatives Data (Sorted by Volume)</h3>
           <Table>
@@ -103,7 +97,6 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                 <TableHead>Symbol</TableHead>
                 <TableHead>Contract Type</TableHead>
                 <TableHead className="text-right">Volume 24h</TableHead>
-                <TableHead className="text-right">Open Interest</TableHead>
                 <TableHead className="text-right">Index Price</TableHead>
                 <TableHead className="text-right">Funding Rate</TableHead>
                 <TableHead>Timestamp</TableHead>
@@ -116,7 +109,6 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                   <TableCell>{contract.symbol}</TableCell>
                   <TableCell>{contract.contract_type}</TableCell>
                   <TableCell className="text-right">{formatCompactNumber(contract.volume_24h)}</TableCell>
-                  <TableCell className="text-right">{formatCompactNumber(contract.oi_usd)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(contract.index_price)}</TableCell>
                   <TableCell className="text-right">
                     {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
