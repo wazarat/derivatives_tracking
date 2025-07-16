@@ -21,9 +21,9 @@ interface CryptoData {
   name: string;
   symbol: string;
   logoUrl: string;
-  price: number;
-  marketCap: number;
-  volume24h: number;
+  price: number | null;
+  marketCap: number | null;
+  volume24h: number | null;
   change24h: number;
   sparkline7d?: number[];
   isWatchlisted: boolean;
@@ -79,7 +79,8 @@ export function WatchlistTable({
   });
 
   // Format price with appropriate decimal places
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | null) => {
+    if (price === null) return '0.00';
     if (price < 0.01) return price.toFixed(6);
     if (price < 1) return price.toFixed(4);
     if (price < 10) return price.toFixed(2);
@@ -87,7 +88,8 @@ export function WatchlistTable({
   };
 
   // Format large numbers (market cap, volume)
-  const formatLargeNumber = (num: number) => {
+  const formatLargeNumber = (num: number | null) => {
+    if (num === null) return '0';
     if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
     if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
     if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";

@@ -223,7 +223,7 @@ export default function PublicPortfolioPage({
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Expected APY</p>
-                  <h3 className="text-3xl font-bold">{apy.toFixed(2)}%</h3>
+                  <h3 className="text-3xl font-bold">{apy ? apy.toFixed(2) : '0.00'}%</h3>
                 </div>
                 <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <span className="text-primary text-xl font-semibold">APY</span>
@@ -237,7 +237,7 @@ export default function PublicPortfolioPage({
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Risk Score</p>
-                  <h3 className="text-3xl font-bold">{risk.toFixed(1)}</h3>
+                  <h3 className="text-3xl font-bold">{risk ? risk.toFixed(1) : '0.0'}</h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     {getRiskLabel(risk)}
                   </p>
@@ -290,7 +290,7 @@ export default function PublicPortfolioPage({
                   </div>
                   <div className="text-right">
                     <p className="font-medium">{entry.allocation}%</p>
-                    <p className="text-sm text-muted-foreground">APY: {entry.asset.apy.toFixed(2)}%</p>
+                    <p className="text-sm text-muted-foreground">APY: {entry.asset.apy ? entry.asset.apy.toFixed(2) : '0.00'}%</p>
                   </div>
                 </div>
               </div>
@@ -320,7 +320,8 @@ function getAssetColor(sector: string): string {
 }
 
 // Helper function to get risk label
-function getRiskLabel(risk: number): string {
+function getRiskLabel(risk: number | null): string {
+  if (risk === null) return 'Unknown Risk';
   if (risk < 2) return 'Very Low Risk';
   if (risk < 3) return 'Low Risk';
   if (risk < 4) return 'Moderate Risk';
