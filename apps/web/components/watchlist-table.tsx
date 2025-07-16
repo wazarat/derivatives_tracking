@@ -63,10 +63,10 @@ export function WatchlistTable({
     const valueA = a[sortConfig.key];
     const valueB = b[sortConfig.key];
     
-    // If either value is undefined, handle it gracefully
-    if (valueA === undefined && valueB === undefined) return 0;
-    if (valueA === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-    if (valueB === undefined) return sortConfig.direction === "asc" ? 1 : -1;
+    // If either value is undefined or null, handle it gracefully
+    if ((valueA === undefined || valueA === null) && (valueB === undefined || valueB === null)) return 0;
+    if (valueA === undefined || valueA === null) return sortConfig.direction === "asc" ? -1 : 1;
+    if (valueB === undefined || valueB === null) return sortConfig.direction === "asc" ? 1 : -1;
     
     // Now compare the values normally
     if (valueA < valueB) {
