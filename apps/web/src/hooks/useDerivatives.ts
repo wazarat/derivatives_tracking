@@ -85,12 +85,23 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     const apiUrl = `${baseUrl}/api/cmc-derivatives`;
     console.log('Fetching from URL:', apiUrl);
     
+    // Log environment information
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Window location:', typeof window !== 'undefined' ? window.location.href : 'No window');
+    
     const response = await fetch(apiUrl);
     
     console.log('API response status:', response.status);
     
     if (!response.ok) {
       console.error('Error response:', response.statusText);
+      // Try to get more details from the error response
+      try {
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
+      } catch (e) {
+        console.error('Could not parse error response');
+      }
       console.log('Falling back to mock data due to API error');
       return mockData; // Fallback to mock data on error
     }
@@ -101,6 +112,11 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
     if (!data || data.length === 0) {
       console.log('No data returned from API, falling back to mock data');
       return mockData; // Fallback to mock data if no data returned
+    }
+    
+    // Log a sample of the data
+    if (data.length > 0) {
+      console.log('Sample data item:', JSON.stringify(data[0]));
     }
     
     // Filter by contract_type if sector is specified
@@ -167,6 +183,7 @@ export function useDerivatives(sector: DerivativesSector) {
     refetchInterval: 30000, // Refetch every 30 seconds
     select: (data) => {
       console.log('Received data from query:', data);
+      console.log('Is mock data?', data === mockData ? 'YES - Using mock data' : 'NO - Using real data');
       return {
         data,
         stats: calculateDerivativesStats(data),
