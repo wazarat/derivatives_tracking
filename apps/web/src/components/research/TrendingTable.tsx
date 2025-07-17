@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useDerivatives } from "@/hooks/useDerivatives";
 import {
   DropdownMenu,
@@ -17,6 +23,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AddToWatchlistDialog } from "@/components/watchlist/AddToWatchlistDialog";
+import { AddTradeDialog } from "@/components/portfolio/AddTradeDialog";
+import { Info } from "lucide-react";
 
 // Define trending instrument interface
 export interface TrendingInstrument {
@@ -33,14 +42,16 @@ export interface TrendingInstrument {
 }
 
 interface TrendingTableProps {
-  type: 'futures' | 'perps' | 'dex-perps';
+  type: 'futures' | 'perps' | 'dex-perps' | 'dex-derivatives';
 }
 
 export function TrendingTable({ type }: TrendingTableProps) {
-  // Fetch trending data based on type
-  const { data: derivativesResponse, isLoading, error } = useDerivatives(
-    type === 'dex-perps' ? 'dex-perps' : (type === 'futures' ? 'cex-futures' : 'cex-perps')
-  );
+  const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
+  const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
+  const [selectedInstrument, setSelectedInstrument] = useState<any>(null);
+
+  // Fetch trending data based on type - always use dex-perps for DEX Derivatives
+  const { data: derivativesResponse, isLoading, error } = useDerivatives('dex-perps');
 
   // Extract data array from response (handle both array and object with data property)
   const rawData = Array.isArray(derivativesResponse) ? derivativesResponse : (derivativesResponse?.data || []);
@@ -61,14 +72,23 @@ export function TrendingTable({ type }: TrendingTableProps) {
 
   // Function to add to watchlist
   const addToWatchlist = (instrument: TrendingInstrument) => {
-    // TODO: Implement watchlist functionality
-    console.log("Add to watchlist:", instrument);
+    setSelectedInstrument({
+      exchange: instrument.venue,
+      symbol: instrument.symbol,
+      contract_type: 'derivatives',
+      index_price: instrument.price
+    });
+    setWatchlistDialogOpen(true);
   };
 
   // Function to add to portfolio
   const addToPortfolio = (instrument: TrendingInstrument) => {
-    // TODO: Implement portfolio functionality
-    console.log("Add to portfolio:", instrument);
+    setSelectedInstrument({
+      exchange: instrument.venue,
+      symbol: instrument.symbol,
+      entry_price: instrument.price.toString()
+    });
+    setTradeDialogOpen(true);
   };
 
   // Format percentage with color
@@ -121,17 +141,18 @@ export function TrendingTable({ type }: TrendingTableProps) {
   };
 
   return (
-    <div className="rounded-md border">
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <p>Loading trending instruments...</p>
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-red-500">Error loading data</p>
-        </div>
-      ) : (
-        <Table>
+    <TooltipProvider>
+      <div className="rounded-md border">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <p>Loading trending instruments...</p>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-red-500">Error loading data</p>
+          </div>
+        ) : (
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Instrument</TableHead>
@@ -139,9 +160,45 @@ export function TrendingTable({ type }: TrendingTableProps) {
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">24h Change</TableHead>
               <TableHead className="text-right">24h Volume</TableHead>
-              <TableHead className="text-right">Trend Score</TableHead>
-              <TableHead className="text-right">Social Score</TableHead>
-              <TableHead className="text-right">Technical Score</TableHead>
+              <TableHead className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  Trend Score
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Measures price momentum, volume trends, and market interest over time. Higher scores indicate stronger trending behavior.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  Social Score
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Aggregates social media mentions, sentiment analysis, and community engagement. Higher scores indicate more positive social sentiment.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  Technical Score
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Combines technical indicators like RSI, MACD, moving averages, and support/resistance levels. Higher scores suggest stronger technical signals.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -189,9 +246,24 @@ export function TrendingTable({ type }: TrendingTableProps) {
               </TableRow>
             )}
           </TableBody>
-        </Table>
-      )}
-    </div>
+          </Table>
+        )}
+        
+        {/* Watchlist Dialog */}
+        {watchlistDialogOpen && selectedInstrument && (
+          <AddToWatchlistDialog
+            contract={selectedInstrument}
+          />
+        )}
+        
+        {/* Trade Dialog */}
+        {tradeDialogOpen && selectedInstrument && (
+          <AddTradeDialog
+            prefilledData={selectedInstrument}
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
 

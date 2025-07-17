@@ -100,7 +100,10 @@ export function AssetCard({ asset, className = '', onWatchlistChange }: AssetCar
       {/* Watchlist button in card footer */}
       <div className="px-4 py-2 border-t border-gray-100 flex justify-end">
         <WatchlistButton 
-          asset={asset}
+          exchange="binance"
+          symbol={asset.ticker}
+          contract_type="spot"
+          name={asset.name}
           variant="ghost"
           size="sm"
           onToggle={onWatchlistChange}

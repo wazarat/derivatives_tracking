@@ -220,7 +220,12 @@ export default function AssetDetailPage() {
               <span className="text-lg font-normal text-muted-foreground">
                 {asset.ticker}
               </span>
-              <WatchlistButton asset={asset} />
+              <WatchlistButton 
+                exchange="binance" 
+                symbol={asset.ticker} 
+                contract_type="spot" 
+                name={asset.name}
+              />
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground">

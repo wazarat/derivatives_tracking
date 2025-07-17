@@ -1,23 +1,90 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Plus, Star, StarOff, TrendingUp, TrendingDown } from 'lucide-react';
 import { DerivativesLatest } from '@/types/supabase';
 import { DerivativesSector, useDerivatives } from '@/hooks/useDerivatives';
-import { formatCurrency, formatCompactNumber, formatPercent } from '@/utils/format';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { formatCompactNumber, formatCurrency, formatPercent } from '@/utils/formatters';
+import { useWatchlist } from '@/hooks/useWatchlist';
+import { useToast } from '@/components/ui/use-toast';
+import { AddTradeDialog } from '@/components/portfolio/AddTradeDialog';
+import { AddToWatchlistDialog } from '@/components/watchlist/AddToWatchlistDialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface DerivativesPanelProps {
   sector: DerivativesSector;
   title: string;
+}
+
+interface DerivativeRowProps {
+  contract: DerivativesLatest;
+  sector: DerivativesSector;
+}
+
+function DerivativeRow({ contract, sector }: DerivativeRowProps) {
+  
+  // Create pre-filled trade data for the AddTradeDialog
+  const prefilledTradeData = {
+    exchange: contract.exchange,
+    symbol: contract.symbol,
+    entry_price: contract.index_price.toString(),
+  };
+  
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{contract.exchange}</TableCell>
+      <TableCell>{contract.symbol}</TableCell>
+      <TableCell>{contract.contract_type}</TableCell>
+      <TableCell className="text-right">{formatCompactNumber(contract.vol24h)}</TableCell>
+      <TableCell className="text-right">{formatCurrency(contract.index_price)}</TableCell>
+      {/* Only show Funding Rate cell for DEX derivatives */}
+      {sector === 'dex-perps' && (
+        <TableCell className="text-right">
+          {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
+        </TableCell>
+      )}
+      <TableCell className="text-xs">{new Date(contract.ts).toLocaleString()}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-2">
+          <AddToWatchlistDialog contract={contract} />
+          
+          <AddTradeDialog
+            trigger={
+              <Button variant="default" size="sm" className="h-8 px-2">
+                <Plus className="h-3 w-3 mr-1" />
+                Add to Portfolio
+              </Button>
+            }
+            prefilledData={prefilledTradeData}
+          />
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+interface PrefilledAddTradeDialogProps {
+  prefilledData: {
+    exchange: string;
+    symbol: string;
+    entry_price: string;
+  };
+}
+
+function PrefilledAddTradeDialog({ prefilledData }: PrefilledAddTradeDialogProps) {
+  return (
+    <AddTradeDialog 
+      trigger={
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Plus className="h-4 w-4" />
+        </Button>
+      }
+      prefilledData={prefilledData}
+    />
+  );
 }
 
 export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
@@ -57,8 +124,8 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
   
   const { stats, data: contracts } = data;
   
-  // Sort contracts by volume_24h (descending)
-  const sortedContracts = [...contracts].sort((a, b) => b.volume_24h - a.volume_24h);
+  // Sort contracts by vol24h (descending)
+  const sortedContracts = [...contracts].sort((a, b) => b.vol24h - a.vol24h);
   
   return (
     <Card className="col-span-full">
@@ -83,7 +150,7 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               {sortedContracts.length > 0 
-                ? `${formatCompactNumber(sortedContracts[0].volume_24h)} 24h volume on ${sortedContracts[0].exchange}`
+                ? `${formatCompactNumber(sortedContracts[0].vol24h)} 24h volume on ${sortedContracts[0].exchange}`
                 : 'No data available'
               }
             </div>
@@ -106,24 +173,16 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                   <TableHead className="text-right">Funding Rate</TableHead>
                 )}
                 <TableHead>Timestamp</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedContracts.slice(0, 20).map((contract) => (
-                <TableRow key={`${contract.exchange}-${contract.symbol}`}>
-                  <TableCell className="font-medium">{contract.exchange}</TableCell>
-                  <TableCell>{contract.symbol}</TableCell>
-                  <TableCell>{contract.contract_type}</TableCell>
-                  <TableCell className="text-right">{formatCompactNumber(contract.volume_24h)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(contract.price)}</TableCell>
-                  {/* Only show Funding Rate cell for DEX derivatives */}
-                  {sector === 'dex-perps' && (
-                    <TableCell className="text-right">
-                      {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
-                    </TableCell>
-                  )}
-                  <TableCell className="text-xs">{new Date(contract.ts).toLocaleString()}</TableCell>
-                </TableRow>
+                <DerivativeRow 
+                  key={`${contract.exchange}-${contract.symbol}`}
+                  contract={contract}
+                  sector={sector}
+                />
               ))}
             </TableBody>
           </Table>

@@ -2,19 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { CorrelationChart } from "./CorrelationChart";
-import { useFuturesInstruments, usePerpetualInstruments, useDexPerpInstruments } from "@/hooks/useInstruments";
-import { AddTradeModal, AddTradeFormData } from "./AddTradeModal";
-import { addToWatchlist, addToPortfolio } from "@/services/watchlistService";
+import { useWatchlist } from "@/hooks/useWatchlist";
 import { useToast } from "@/components/ui/use-toast";
+import { formatCurrency, formatPercent, formatCompactNumber } from "@/utils/formatters";
+import { Plus, X, TrendingUp, TrendingDown } from "lucide-react";
 
 // Predefined colors for chart lines
 const CHART_COLORS = [
@@ -30,32 +24,11 @@ const CHART_COLORS = [
 
 export function CorrelationsTab() {
   const { toast } = useToast();
-  const [selectedSector, setSelectedSector] = useState<string>("cex-futures");
+  const { watchlist, loading: watchlistLoading } = useWatchlist();
   const [selectedInstruments, setSelectedInstruments] = useState<any[]>([]);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [selectedInstrument, setSelectedInstrument] = useState<any>(null);
   
-  // Fetch instruments based on selected sector
-  const futuresQuery = useFuturesInstruments();
-  const perpsQuery = usePerpetualInstruments();
-  const dexPerpsQuery = useDexPerpInstruments();
-  
-  // Get the appropriate query based on selected sector
-  const getActiveQuery = () => {
-    switch (selectedSector) {
-      case "cex-futures":
-        return futuresQuery;
-      case "cex-perps":
-        return perpsQuery;
-      case "dex-perps":
-        return dexPerpsQuery;
-      default:
-        return futuresQuery;
-    }
-  };
-  
-  const activeQuery = getActiveQuery();
-  const instruments = activeQuery.data || [];
+  // Maximum of 5 instruments allowed
+  const MAX_INSTRUMENTS = 5;
   
   // Mock correlation data (in a real app, this would be fetched from an API)
   const [correlationData, setCorrelationData] = useState<any[]>([]);
@@ -120,141 +93,114 @@ export function CorrelationsTab() {
     setCorrelationData(mockData);
   }, [selectedInstruments]);
   
-  // Handle selecting an instrument
-  const handleSelectInstrument = (instrumentId: string) => {
-    const instrument = instruments.find(i => i.id === instrumentId);
-    if (!instrument) return;
-    
+  // Handle selecting an instrument from watchlist
+  const handleSelectInstrument = (watchlistItem: any) => {
     // Check if already selected
-    if (selectedInstruments.some(i => i.id === instrumentId)) {
+    if (selectedInstruments.find(i => i.id === watchlistItem.id)) {
       toast({
-        title: "Instrument already selected",
-        description: "This instrument is already in your correlation chart.",
+        title: "Already Selected",
+        description: "This instrument is already selected for correlation analysis.",
+        variant: "destructive",
       });
       return;
     }
     
-    // Limit to 2 instruments for correlation analysis
-    if (selectedInstruments.length >= 2) {
+    // Limit to 5 instruments for correlation analysis
+    if (selectedInstruments.length >= MAX_INSTRUMENTS) {
       toast({
-        title: "Maximum instruments reached",
-        description: "You can only compare up to 2 instruments at a time.",
+        title: "Maximum Reached",
+        description: `You can select up to ${MAX_INSTRUMENTS} instruments for correlation analysis.`,
+        variant: "destructive",
       });
       return;
     }
     
-    // Add instrument with a color
-    setSelectedInstruments([
-      ...selectedInstruments, 
-      {
-        ...instrument,
-        color: CHART_COLORS[selectedInstruments.length % CHART_COLORS.length]
-      }
-    ]);
+    // Assign a color to the instrument
+    const color = CHART_COLORS[selectedInstruments.length % CHART_COLORS.length];
+    const instrumentWithColor = { 
+      ...watchlistItem, 
+      color,
+      // Mock some additional data for correlation analysis
+      price: watchlistItem.latest_price || Math.random() * 1000 + 100,
+      change24h: (Math.random() - 0.5) * 10,
+      volume24h: Math.random() * 1000000000,
+    };
+    
+    setSelectedInstruments(prev => [...prev, instrumentWithColor]);
   };
-  
+
   // Handle removing an instrument
   const handleRemoveInstrument = (instrumentId: string) => {
-    setSelectedInstruments(selectedInstruments.filter(i => i.id !== instrumentId));
+    setSelectedInstruments(prev => prev.filter(i => i.id !== instrumentId));
   };
-  
-  // Handle adding to watchlist/portfolio
-  const handleOpenAddModal = (instrument: any) => {
-    setSelectedInstrument(instrument);
-    setModalOpen(true);
+
+  // Calculate correlation metrics for comparison
+  const getCorrelationMetrics = () => {
+    if (selectedInstruments.length < 2) return null;
+    
+    const metrics = selectedInstruments.map(instrument => ({
+      symbol: instrument.symbol,
+      exchange: instrument.exchange,
+      price: instrument.price,
+      change24h: instrument.change24h,
+      volume24h: instrument.volume24h,
+      color: instrument.color,
+    }));
+    
+    return metrics;
   };
-  
-  const handleAddToWatchlist = async (data: AddTradeFormData) => {
-    try {
-      await addToWatchlist(data);
-      toast({
-        title: "Added to Watchlist",
-        description: `${data.instrumentSymbol} has been added to your watchlist.`,
-      });
-    } catch (error) {
-      console.error("Error adding to watchlist:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add to watchlist. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const handleAddToPortfolio = async (data: AddTradeFormData) => {
-    try {
-      await addToPortfolio(data);
-      toast({
-        title: "Added to Portfolio",
-        description: `${data.instrumentSymbol} position has been added to your portfolio.`,
-      });
-    } catch (error) {
-      console.error("Error adding to portfolio:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add to portfolio. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="w-full md:w-1/3">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="w-full lg:w-1/3">
           <Card>
             <CardHeader>
-              <CardTitle>Select Instruments</CardTitle>
+              <CardTitle>Add from Watchlist</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="sector">Sector</Label>
-                <Select
-                  value={selectedSector}
-                  onValueChange={setSelectedSector}
-                >
-                  <SelectTrigger id="sector">
-                    <SelectValue placeholder="Select sector" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cex-futures">CEX Futures</SelectItem>
-                    <SelectItem value="cex-perps">CEX Perpetuals</SelectItem>
-                    <SelectItem value="dex-perps">DEX Perpetuals</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {watchlistLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">Loading watchlist...</p>
+                </div>
+              ) : watchlist.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">No instruments in watchlist</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {watchlist.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-2 bg-muted/40 rounded-md hover:bg-muted/60 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{item.symbol}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.exchange} • {item.contract_type}
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleSelectInstrument(item)}
+                        disabled={selectedInstruments.some(i => i.id === item.id)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
               
-              <div>
-                <Label htmlFor="instrument">Instrument</Label>
-                <Select
-                  disabled={activeQuery.isLoading || !instruments.length}
-                  onValueChange={handleSelectInstrument}
-                >
-                  <SelectTrigger id="instrument">
-                    <SelectValue placeholder={
-                      activeQuery.isLoading 
-                        ? "Loading..." 
-                        : instruments.length 
-                          ? "Select instrument" 
-                          : "No instruments available"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {instruments.map((instrument) => (
-                      <SelectItem key={instrument.id} value={instrument.id}>
-                        {instrument.symbol} ({instrument.venue})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Separator />
               
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Selected Instruments</h4>
+              <div className="mt-6">
+                <h4 className="text-sm font-medium mb-3">
+                  Selected Instruments ({selectedInstruments.length}/{MAX_INSTRUMENTS})
+                </h4>
                 {selectedInstruments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No instruments selected
-                  </p>
+                  <p className="text-sm text-muted-foreground">No instruments selected</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedInstruments.map((instrument) => (
@@ -262,31 +208,23 @@ export function CorrelationsTab() {
                         key={instrument.id} 
                         className="flex items-center justify-between p-2 bg-muted/40 rounded-md"
                       >
-                        <div className="flex items-center">
+                        <div className="flex items-center flex-1">
                           <div 
                             className="w-3 h-3 rounded-full mr-2" 
                             style={{ backgroundColor: instrument.color }}
                           />
-                          <span className="text-sm font-medium">
-                            {instrument.symbol}
-                          </span>
+                          <div>
+                            <div className="text-sm font-medium">{instrument.symbol}</div>
+                            <div className="text-xs text-muted-foreground">{instrument.exchange}</div>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleOpenAddModal(instrument)}
-                          >
-                            Add
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleRemoveInstrument(instrument.id)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleRemoveInstrument(instrument.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -296,7 +234,7 @@ export function CorrelationsTab() {
           </Card>
         </div>
         
-        <div className="w-full md:w-2/3">
+        <div className="w-full lg:w-2/3 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Correlation Analysis</CardTitle>
@@ -338,16 +276,53 @@ export function CorrelationsTab() {
               )}
             </CardContent>
           </Card>
+          
+          {/* Metrics Comparison */}
+          {selectedInstruments.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Metrics Comparison</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {selectedInstruments.map((instrument, index) => (
+                    <div key={instrument.id} className="flex items-center justify-between p-3 bg-muted/40 rounded-md">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: instrument.color }}
+                        />
+                        <div>
+                          <div className="font-medium text-sm">{instrument.symbol}</div>
+                          <div className="text-xs text-muted-foreground">{instrument.exchange}</div>
+                        </div>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <div className="text-sm font-medium">
+                          {formatCurrency(instrument.price)}
+                        </div>
+                        <div className={`text-xs flex items-center gap-1 ${
+                          instrument.change24h >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {instrument.change24h >= 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          {formatPercent(instrument.change24h / 100)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Vol: {formatCompactNumber(instrument.volume24h)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-      
-      <AddTradeModal
-        instrument={selectedInstrument}
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onAddToWatchlist={handleAddToWatchlist}
-        onAddToPortfolio={handleAddToPortfolio}
-      />
     </div>
   );
 }

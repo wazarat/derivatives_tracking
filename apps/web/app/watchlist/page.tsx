@@ -2,19 +2,36 @@
 
 import { useState } from "react";
 import { 
-  Bell, 
-  ChevronDown, 
-  ChevronUp, 
-  Edit2, 
-  MoreHorizontal, 
   Plus, 
   Search, 
   Star, 
-  Trash2 
+  Trash2, 
+  ChevronUp, 
+  ChevronDown, 
+  MoreHorizontal, 
+  Bell
 } from "lucide-react";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger, 
+  DialogFooter, 
+  DialogDescription 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -22,44 +39,38 @@ import {
   DropdownMenuLabel, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from "../../components/ui/dropdown-menu";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "../../components/ui/dialog";
-import { Label } from "../../components/ui/label";
-import { toast } from "../../components/ui/use-toast";
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "../../components/ui/skeleton";
+import { useWatchlist, WatchlistItem } from "../../src/hooks/useWatchlist";
+import { useAuth } from "@clerk/nextjs";
 
-interface WatchlistItem {
-  id: string;
-  symbol: string;
-  name: string;
-  price: number;
-  change24h: number;
-  marketCap: number;
-  volume24h: number;
-  starred: boolean;
-}
+// Simple format functions to avoid import issues
+const formatPrice = (price: number) => `$${price.toFixed(4)}`;
+const formatCompactNumber = (num: number) => {
+  if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
+  if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+  if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+  return num.toString();
+};
 
 export default function WatchlistPage() {
-  const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([
-    { id: "1", symbol: "BTC", name: "Bitcoin", price: 67432.58, change24h: 2.34, marketCap: 1324.5, volume24h: 28.7, starred: true },
-    { id: "2", symbol: "ETH", name: "Ethereum", price: 3245.67, change24h: -1.23, marketCap: 389.2, volume24h: 15.3, starred: true },
-    { id: "3", symbol: "SOL", name: "Solana", price: 143.21, change24h: 5.67, marketCap: 62.3, volume24h: 4.8, starred: false },
-    { id: "4", symbol: "AVAX", name: "Avalanche", price: 34.56, change24h: 3.21, marketCap: 12.8, volume24h: 1.1, starred: false },
-    { id: "5", symbol: "LINK", name: "Chainlink", price: 15.67, change24h: 4.56, marketCap: 8.4, volume24h: 0.6, starred: false },
-    { id: "6", symbol: "MATIC", name: "Polygon", price: 0.58, change24h: -2.14, marketCap: 5.7, volume24h: 0.4, starred: false },
-    { id: "7", symbol: "DOT", name: "Polkadot", price: 6.78, change24h: 1.45, marketCap: 8.9, volume24h: 0.3, starred: false },
-    { id: "8", symbol: "ADA", name: "Cardano", price: 0.45, change24h: -0.87, marketCap: 16.2, volume24h: 0.5, starred: false },
-  ]);
+  const { isSignedIn } = useAuth();
+  const { 
+    watchlist, 
+    loading, 
+    error, 
+    addToWatchlist: addToWatchlistHook, 
+    removeFromWatchlist: removeFromWatchlistHook, 
+    toggleStar: toggleStarHook 
+  } = useWatchlist();
+  const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [newAssetSymbol, setNewAssetSymbol] = useState("");
+  const [newAssetExchange, setNewAssetExchange] = useState("");
+  const [newAssetContractType, setNewAssetContractType] = useState("derivatives");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -87,71 +98,112 @@ export default function WatchlistPage() {
     }).format(value / 100);
   };
   
-  const toggleStar = (id: string) => {
-    setWatchlistItems(items => 
-      items.map(item => 
-        item.id === id ? { ...item, starred: !item.starred } : item
-      )
+  if (!isSignedIn) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign In Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Please sign in to access your watchlist.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
-    
-    const item = watchlistItems.find(item => item.id === id);
-    if (item) {
+  }
+
+  // Filter watchlist based on search query
+  const filteredWatchlist = watchlist?.filter(item => 
+    item.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.exchange.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const handleToggleStar = async (item: WatchlistItem) => {
+    try {
+      await toggleStarHook(item.id);
       toast({
-        title: item.starred ? "Removed from favorites" : "Added to favorites",
-        description: `${item.name} (${item.symbol}) has been ${item.starred ? "removed from" : "added to"} your favorites.`,
+        title: item.starred ? "Removed from starred" : "Added to starred",
+        description: `${item.symbol} has been ${item.starred ? 'unstarred' : 'starred'}.`,
       });
-    }
-  };
-  
-  const removeFromWatchlist = (id: string) => {
-    const item = watchlistItems.find(item => item.id === id);
-    
-    setWatchlistItems(items => items.filter(item => item.id !== id));
-    
-    if (item) {
-      toast({
-        title: "Removed from watchlist",
-        description: `${item.name} (${item.symbol}) has been removed from your watchlist.`,
-      });
-    }
-  };
-  
-  const addToWatchlist = () => {
-    if (!newAssetSymbol) {
+    } catch (error) {
+      console.error('Error toggling star:', error);
       toast({
         title: "Error",
-        description: "Please enter a valid symbol",
+        description: "Failed to update star status.",
+      });
+    }
+  };
+
+  const handleRemoveFromWatchlist = async (item: WatchlistItem) => {
+    try {
+      await removeFromWatchlistHook(item.id);
+      toast({
+        title: "Removed from watchlist",
+        description: `${item.symbol} has been removed from your watchlist.`,
+      });
+    } catch (error) {
+      console.error('Error removing from watchlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from watchlist.",
+      });
+    }
+  };
+
+  const handleAddToWatchlist = async () => {
+    if (!newAssetSymbol || !newAssetExchange) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
       });
       return;
     }
-    
-    // In a real app, we would fetch the asset data from the API
-    // For now, we'll just add a mock asset
-    const newAsset: WatchlistItem = {
-      id: `${watchlistItems.length + 1}`,
-      symbol: newAssetSymbol.toUpperCase(),
-      name: `New Asset (${newAssetSymbol.toUpperCase()})`,
-      price: 100.00,
-      change24h: 0.00,
-      marketCap: 1.0,
-      volume24h: 0.1,
-      starred: false,
-    };
-    
-    setWatchlistItems(items => [...items, newAsset]);
-    setNewAssetSymbol("");
-    
-    toast({
-      title: "Added to watchlist",
-      description: `${newAsset.name} (${newAsset.symbol}) has been added to your watchlist.`,
-    });
+
+    try {
+      const newItem = {
+        symbol: newAssetSymbol.toUpperCase(),
+        exchange: newAssetExchange,
+        contract_type: newAssetContractType,
+        starred: false,
+      };
+
+      await addToWatchlistHook(newItem);
+      
+      toast({
+        title: "Added to watchlist",
+        description: `${newItem.symbol} has been added to your watchlist.`,
+      });
+      
+      // Reset form
+      setNewAssetSymbol("");
+      setNewAssetExchange("");
+      setNewAssetContractType("derivatives");
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error('Error adding to watchlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to watchlist.",
+      });
+    }
   };
-  
-  const filteredWatchlist = watchlistItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
+
+  // Wrapper functions to match WatchlistRow expected signatures
+  const handleToggleStarById = async (id: string) => {
+    const item = filteredWatchlist.find(item => item.id === id);
+    if (item) {
+      await handleToggleStar(item);
+    }
+  };
+
+  const handleRemoveById = async (id: string) => {
+    const item = filteredWatchlist.find(item => item.id === id);
+    if (item) {
+      await handleRemoveFromWatchlist(item);
+    }
+  };
+
   const starredItems = filteredWatchlist.filter(item => item.starred);
   const otherItems = filteredWatchlist.filter(item => !item.starred);
 
@@ -208,7 +260,7 @@ export default function WatchlistPage() {
                 <Button variant="outline" onClick={() => setNewAssetSymbol("")}>
                   Cancel
                 </Button>
-                <Button onClick={addToWatchlist}>Add</Button>
+                <Button onClick={handleAddToWatchlist}>Add</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -248,8 +300,8 @@ export default function WatchlistPage() {
                           <WatchlistRow 
                             key={item.id} 
                             item={item} 
-                            onToggleStar={toggleStar} 
-                            onRemove={removeFromWatchlist} 
+                            onToggleStar={handleToggleStarById} 
+                            onRemove={handleRemoveById} 
                           />
                         ))}
                       </>
@@ -266,8 +318,8 @@ export default function WatchlistPage() {
                           <WatchlistRow 
                             key={item.id} 
                             item={item} 
-                            onToggleStar={toggleStar} 
-                            onRemove={removeFromWatchlist} 
+                            onToggleStar={handleToggleStarById} 
+                            onRemove={handleRemoveById} 
                           />
                         ))}
                       </>
@@ -346,25 +398,29 @@ function WatchlistRow({ item, onToggleStar, onRemove }: WatchlistRowProps) {
             {item.symbol.substring(0, 2)}
           </div>
           <div>
-            <div className="font-medium">{item.name}</div>
+            <div className="font-medium">{item.name || item.symbol}</div>
             <div className="text-xs text-muted-foreground">{item.symbol}</div>
           </div>
         </div>
       </td>
       <td className="p-4 align-middle text-right">
-        {formatPrice(item.price)}
+        {item.price ? formatPrice(item.price) : '-'}
       </td>
       <td className="p-4 align-middle text-right">
-        <span className={`inline-flex items-center ${item.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {item.change24h >= 0 ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-          {formatPercentage(item.change24h)}
-        </span>
+        {item.change24h !== undefined ? (
+          <span className={`inline-flex items-center ${item.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {item.change24h >= 0 ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+            {formatPercentage(item.change24h)}
+          </span>
+        ) : (
+          '-'
+        )}
       </td>
       <td className="p-4 align-middle text-right">
-        {formatCurrency(item.marketCap)}
+        {item.marketCap ? formatCurrency(item.marketCap) : '-'}
       </td>
       <td className="p-4 align-middle text-right">
-        {formatCurrency(item.volume24h)}
+        {item.volume24h ? formatCurrency(item.volume24h) : '-'}
       </td>
       <td className="p-4 align-middle text-right">
         <DropdownMenu>

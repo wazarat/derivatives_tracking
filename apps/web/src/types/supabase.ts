@@ -11,7 +11,7 @@ export interface DerivativesSnapshot {
   contract_type: 'perpetual' | 'futures';
   oi_usd: number;
   funding_rate: number | null;
-  volume_24h: number;
+  vol24h: number;
   index_price: number;
 }
 
