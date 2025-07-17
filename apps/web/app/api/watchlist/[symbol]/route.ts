@@ -6,7 +6,7 @@ const API_URL = process.env.API_URL || 'http://localhost:8000';
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     const { userId, getToken } = auth();
@@ -20,7 +20,7 @@ export async function PUT(
     
     const token = await getToken();
     const body = await req.json();
-    const { symbol } = params;
+    const { symbol } = await params;
     
     const response = await fetch(`${API_URL}/api/v1/watchlist/${symbol}`, {
       method: 'PUT',
@@ -52,7 +52,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     const { userId, getToken } = auth();
@@ -65,7 +65,7 @@ export async function DELETE(
     }
     
     const token = await getToken();
-    const { symbol } = params;
+    const { symbol } = await params;
     
     const response = await fetch(`${API_URL}/api/v1/watchlist/${symbol}`, {
       method: 'DELETE',
