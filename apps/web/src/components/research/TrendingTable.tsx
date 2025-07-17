@@ -75,11 +75,12 @@ export function TrendingTable({ type }: TrendingTableProps) {
 
   // Format price
   const formatPrice = (value: number) => {
+    const decimalPlaces = value < 100 ? 5 : 2;
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: decimalPlaces,
+      maximumFractionDigits: decimalPlaces,
     }).format(value);
 
     return <div className="text-right font-medium">{formatted}</div>;

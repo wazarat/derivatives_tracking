@@ -9,13 +9,13 @@ function formatNumber(value: number, options: Intl.NumberFormatOptions = {}) {
   return new Intl.NumberFormat('en-US', options).format(value);
 }
 
-function formatPercent(value: number | null) {
-  if (value === null) return 'N/A';
+function formatPrice(value: number) {
+  const decimalPlaces = value < 100 ? 5 : 2;
   return new Intl.NumberFormat('en-US', {
-    style: 'percent',
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
-    signDisplay: 'exceptZero',
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
   }).format(value);
 }
 
@@ -97,14 +97,6 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
             <Badge variant="outline" className="bg-slate-100">
               24h Vol: {formatNumber(stats.totalVolume24h, { style: 'currency', currency: 'USD', notation: 'compact' })}
             </Badge>
-            {stats.averageFundingRate !== null && (
-              <Badge 
-                variant="outline" 
-                className={`${stats.averageFundingRate > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}
-              >
-                Avg Funding: {formatPercent(stats.averageFundingRate)}
-              </Badge>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -133,33 +125,24 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
             </div>
           </div>
           
-          {/* Funding Rate Heat Map (only for perpetuals) */}
-          {sector.includes('perps') && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Funding Rates</h3>
-              <div className="grid grid-cols-5 gap-1">
-                {topContracts.map((contract) => {
-                  const fundingRate = contract.funding_rate || 0;
-                  const intensity = Math.min(Math.abs(fundingRate) * 20, 1); // Scale for visual intensity
-                  const bgColor = fundingRate > 0 
-                    ? `rgba(34, 197, 94, ${intensity})` // green
-                    : `rgba(239, 68, 68, ${intensity})`; // red
-                  
-                  return (
-                    <div 
-                      key={`funding-${contract.exchange}-${contract.symbol}`}
-                      className="p-2 rounded text-center text-xs"
-                      style={{ backgroundColor: bgColor }}
-                      title={`${contract.symbol}: ${formatPercent(fundingRate)}`}
-                    >
-                      <div className="font-medium truncate">{contract.symbol}</div>
-                      <div>{formatPercent(fundingRate)}</div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Price Information */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Price Information</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              {topContracts.map((contract) => {
+                return (
+                  <div 
+                    key={`price-${contract.exchange}-${contract.symbol}`}
+                    className="p-2 rounded bg-slate-50 text-center text-xs"
+                  >
+                    <div className="font-medium truncate">{contract.symbol}</div>
+                    <div className="text-blue-600 font-medium">{formatPrice(contract.price || 0)}</div>
+                    <div className="text-xs text-muted-foreground">{contract.exchange}</div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>

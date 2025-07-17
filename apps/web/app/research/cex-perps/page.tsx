@@ -21,10 +21,10 @@ export default function CexPerpsPage() {
         </Button>
       </div>
       
-      <h1 className="text-3xl font-bold mb-6">CEX Perpetuals Research</h1>
+      <h1 className="text-3xl font-bold mb-6">CEX Derivatives Traders</h1>
       
       <div className="grid grid-cols-1 gap-6">
-        <DerivativesPanel sector="cex-perps" title="CEX Perpetuals Market Overview" />
+        <DerivativesPanel sector="cex-perps" title="CEX Derivatives Market Overview" />
         
         {/* Additional research components can be added here */}
       </div>
