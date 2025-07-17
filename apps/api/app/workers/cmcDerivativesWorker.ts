@@ -249,24 +249,23 @@ function processMarketPairsData(marketPairs: any[], exchangeSlug: string, catego
       console.log(`Processing ${pair.market_pair}: `, {
         exchange: exchangeSlug,
         category,
-        contract_type: contractType,
-        oi_usd: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
-        volume_24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,
+        contract_type: 'derivatives',
+        oi: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
+        vol24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,
       });
     }
     
     return {
       exchange: exchangeSlug,
       symbol: pair.market_pair || 'Unknown',
-      contract_type: contractType,
-      oi_usd: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
+      contract_type: 'derivatives', // Always use 'derivatives' for consistency
+      oi: pair.quote?.USD?.open_interest_usd || pair.quote?.exchange_reported?.open_interest_usd || 0,
       funding_rate: pair.funding_rate || 0,
-      volume_24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,
-      index_price: pair.quote?.USD?.price || pair.quote?.exchange_reported?.price || 0,
+      vol24h: pair.quote?.USD?.volume_24h || pair.quote?.exchange_reported?.volume_24h_quote || 0,
+      price: pair.quote?.USD?.price || pair.quote?.exchange_reported?.price || 0,
       ts: new Date(),
       symbol_base: baseSymbol,
-      symbol_quote: quoteSymbol,
-      cmc_market_id: pair.market_id || null
+      symbol_quote: quoteSymbol
     };
   });
 }
@@ -353,7 +352,7 @@ export async function cmcDerivativesWorker(sector: string = 'derivatives'): Prom
         if (deduplicatedData.length > 0) {
           console.log(`First 3 records that would be inserted:`);
           deduplicatedData.slice(0, 3).forEach((record, index) => {
-            console.log(`  ${index + 1}. ${record.exchange} - ${record.symbol} (OI: $${record.oi_usd?.toLocaleString() || 'N/A'}, Volume 24h: $${record.volume_24h?.toLocaleString() || 'N/A'})`);
+            console.log(`  ${index + 1}. ${record.exchange} - ${record.symbol} (OI: $${record.oi?.toLocaleString() || 'N/A'}, Volume 24h: $${record.vol24h?.toLocaleString() || 'N/A'})`);
           });
         }
       } else if (supabase) {

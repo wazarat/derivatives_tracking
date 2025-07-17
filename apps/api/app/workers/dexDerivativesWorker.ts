@@ -35,176 +35,181 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// API endpoints
+// API endpoint
 const HYPERLIQUID_API = 'https://api.hyperliquid.xyz';
-const DYDX_API = 'https://indexer.dydx.trade/v4';
 
 /**
- * Fetch all perpetual contracts from Hyperliquid
+ * Fetch all perpetual contracts from Hyperliquid with proper timeout handling
  */
 async function fetchHyperliquid() {
   console.log('Fetching Hyperliquid perpetuals data...');
   
   try {
-    const res = await fetch(`${HYPERLIQUID_API}/info`, {
+    // Create an AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    // First get the meta and asset contexts
+    const metaRes = await fetch(`${HYPERLIQUID_API}/info`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ type: 'metaAndAssetCtxs' })
+      body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
+      signal: controller.signal
     });
     
-    if (!res.ok) {
-      throw new Error(`Hyperliquid API error: ${res.status} ${res.statusText}`);
+    if (!metaRes.ok) {
+      throw new Error(`Hyperliquid meta API error: ${metaRes.status} ${metaRes.statusText}`);
     }
     
-    const data = await res.json() as [any, any[]];
-    const [meta, ctxs] = data;
+    const metaData = await metaRes.json() as [any, any[]];
+    const [meta, ctxs] = metaData;
     
-    return meta.universe.map((asset: any, i: number) => ({
-      ts: new Date().toISOString(),
-      exchange: 'Hyperliquid',
-      symbol: `${asset.name}-USD`,
-      contract_type: 'perpetual',
-      oi: +ctxs[i].openInterest,
-      vol24h: +ctxs[i].dayNtlVlm,
-      funding_rate: +ctxs[i].funding,
-      price: +ctxs[i].markPx
-    }));
+    if (!meta?.universe || !Array.isArray(ctxs)) {
+      throw new Error('Invalid Hyperliquid meta API response structure');
+    }
+    
+    // Get current prices
+    const priceRes = await fetch(`${HYPERLIQUID_API}/info`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'allMids' }),
+      signal: controller.signal
+    });
+    
+    if (!priceRes.ok) {
+      throw new Error(`Hyperliquid price API error: ${priceRes.status} ${priceRes.statusText}`);
+    }
+    
+    const priceData = await priceRes.json() as Record<string, string>;
+    
+    clearTimeout(timeoutId);
+    
+    interface DerivativeRecord {
+      ts: string;
+      exchange: string;
+      symbol: string;
+      contract_type: string;
+      oi: number;
+      vol24h: number;
+      funding_rate: number;
+      price: number;
+    }
+    
+    const results: DerivativeRecord[] = meta.universe.map((asset: any, i: number) => {
+      const symbol = asset.name;
+      const price = priceData[symbol] ? parseFloat(priceData[symbol]) : 0;
+      
+      return {
+        ts: new Date().toISOString(),
+        exchange: 'Hyperliquid',
+        symbol: `${symbol}-USD`,
+        contract_type: 'perpetual',
+        oi: +(ctxs[i]?.openInterest || 0),
+        vol24h: +(ctxs[i]?.dayNtlVlm || 0),
+        funding_rate: +(ctxs[i]?.funding || 0),
+        price: price
+      };
+    });
+    
+    console.log(`Successfully fetched ${results.length} Hyperliquid contracts`);
+    console.log('Sample data:', results.slice(0, 3));
+    return results;
   } catch (error) {
-    console.error('Error fetching Hyperliquid data:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Hyperliquid API request timed out after 10 seconds');
+    } else {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error fetching Hyperliquid data:', errorMessage);
+    }
+    throw error; // Re-throw since this is now the primary data source
+  }
+}
+
+/**
+ * Write data to Supabase
+ */
+async function writeToSupabase(data: any[]) {
+  try {
+    console.log(`Attempting to upsert ${data.length} rows to dex_derivatives_instruments table`);
+    
+    // Log a few sample records for debugging
+    console.log('Sample records to be upserted:');
+    console.log(JSON.stringify(data.slice(0, 3), null, 2));
+    
+    const { error, count } = await supabase
+      .from('dex_derivatives_instruments')
+      .upsert(data, { 
+        onConflict: 'exchange,symbol,ts',
+        ignoreDuplicates: false
+      });
+    
+    if (error) {
+      console.error('Error upserting data to Supabase:', error);
+      throw new Error(`Upsert failed: ${JSON.stringify(error)}`);
+    }
+    
+    console.log(`Successfully wrote ${count} rows to Supabase`);
+    return count;
+  } catch (error) {
+    console.error('Error in Supabase operation:', error);
     throw error;
   }
 }
 
 /**
- * Fetch all perpetual contracts from dYdX v4
+ * Main worker function - focuses on Hyperliquid only
  */
-async function fetchDyDx() {
-  console.log('Fetching dYdX perpetuals data...');
+export async function runDexDerivativesWorker(isDryRun = false) {
+  console.log('Starting DEX derivatives worker (Hyperliquid only)...');
   
-  try {
-    const res = await fetch(`${DYDX_API}/perpetualMarkets`);
-    
-    if (!res.ok) {
-      throw new Error(`dYdX API error: ${res.status} ${res.statusText}`);
-    }
-    
-    const data = await res.json() as { markets?: Record<string, any> };
-    
-    // Check if the response has markets property
-    const markets = data.markets || data as Record<string, any>;
-    
-    return Object.values(markets).map((m: any) => ({
-      ts: new Date().toISOString(),
-      exchange: 'dYdX',
-      symbol: m.ticker,                // e.g. 'ETH-USD'
-      contract_type: 'perpetual',
-      oi: +m.openInterestUsd || 0,
-      vol24h: +m.volume24hUsd || 0,
-      funding_rate: +m.currentFundingRate || 0,
-      price: +m.indexPrice || 0
-    }));
-  } catch (error) {
-    console.error('Error fetching dYdX data:', error);
-    throw error;
+  if (isDryRun) {
+    console.log('Dry run mode - will fetch data but not write to Supabase');
   }
-}
-
-/**
- * Main worker function to fetch and store DEX derivatives data
- */
-export async function run() {
-  console.log('Starting DEX derivatives worker...');
   
   try {
-    // Fetch data from both exchanges
-    const [hyperliquidData, dydxData] = await Promise.all([
-      fetchHyperliquid(),
-      fetchDyDx()
-    ]);
+    // Fetch data from Hyperliquid
+    const hyperliquidData = await fetchHyperliquid();
     
-    // Combine data from both exchanges
-    const allData = [...hyperliquidData, ...dydxData];
-    
-    console.log(`Fetched ${hyperliquidData.length} Hyperliquid contracts and ${dydxData.length} dYdX contracts`);
-    
-    // Log first 3 symbols from each exchange for debugging
-    console.log('Sample Hyperliquid symbols:', hyperliquidData.slice(0, 3).map((item: any) => item.symbol));
-    console.log('Sample dYdX symbols:', dydxData.slice(0, 3).map((item: any) => item.symbol));
-    
-    if (allData.length === 0) {
-      console.warn('No data fetched from either exchange');
-      return 0;
+    if (hyperliquidData.length === 0) {
+      console.log('No data fetched from Hyperliquid');
+      return;
     }
     
-    // Deduplicate data based on exchange and symbol to avoid upsert conflicts
-    const uniqueData = Array.from(
-      new Map(allData.map((item: { exchange: string, symbol: string, [key: string]: any }) => 
-        [`${item.exchange}-${item.symbol}`, item])
-      ).values()
+    console.log(`Total records to process: ${hyperliquidData.length}`);
+    
+    // Filter for records with meaningful data
+    const meaningfulData = hyperliquidData.filter((record: any) => 
+      record.oi > 0 || record.vol24h > 0 || record.funding_rate !== 0 || record.price > 0
     );
     
-    try {
-      console.log(`Attempting to upsert ${uniqueData.length} rows to dex_derivatives_instruments table`);
-      
-      // Skip table check and directly attempt upsert
-      console.log('Proceeding with direct upsert');
-      
-      // Log a few sample records for debugging
-      console.log('Sample records to be upserted:');
-      console.log(JSON.stringify(uniqueData.slice(0, 3), null, 2));
-      
-      const { error, count, data } = await supabase
-        .from('dex_derivatives_instruments')
-        .upsert(uniqueData, { 
-          onConflict: 'exchange,symbol,ts',
-          ignoreDuplicates: false
-        })
-        .select();
-      
-      if (error) {
-        console.error('Error upserting data to Supabase:', error);
-        // Log more details about the error
-        console.error('Error details:', JSON.stringify(error));
-        throw new Error(`Upsert failed: ${JSON.stringify(error)}`);
-      }
-      
-      console.log(`DEX derivatives worker wrote ${count} rows`);
-      
-      // Check if data was returned and log some results
-      if (data && data.length > 0) {
-        console.log(`Sample of upserted data (first 3 rows):`);
-        console.log(JSON.stringify(data.slice(0, 3), null, 2));
-      } else {
-        console.log('No data returned from upsert operation');
-        
-        // Let's query the table to see if our data exists
-        console.log('Querying table to verify data...');
-        const { data: existingData, error: queryError } = await supabase
-          .from('dex_derivatives_instruments')
-          .select('*')
-          .limit(5);
-          
-        if (queryError) {
-          console.error('Error querying data:', queryError);
-        } else if (existingData && existingData.length > 0) {
-          console.log(`Found ${existingData.length} existing records in table:`);
-          console.log(JSON.stringify(existingData, null, 2));
-        } else {
-          console.log('No existing data found in table');
-        }
-      }
-      
-      return count;
-    } catch (error) {
-      console.error('Error in Supabase operation:', error);
-      throw error;
+    console.log(`Records with non-zero values: ${meaningfulData.length}`);
+    
+    if (isDryRun) {
+      console.log('Dry run - skipping database write');
+      console.log('Sample meaningful data:', meaningfulData.slice(0, 5));
+      return;
     }
+    
+    if (meaningfulData.length === 0) {
+      console.log('No meaningful data to write to database');
+      return;
+    }
+    
+    // Write to Supabase
+    await writeToSupabase(meaningfulData);
+    
+    console.log('DEX derivatives worker completed successfully');
   } catch (error) {
-    console.error('Error in DEX derivatives worker:', error);
-    // Log the full error object for better debugging
-    console.error('Full error:', JSON.stringify(error, null, 2));
+    console.error('DEX derivatives worker failed:', error);
     throw error;
   }
+}
+
+/**
+ * Legacy run function for compatibility
+ */
+export async function run() {
+  return runDexDerivativesWorker(false);
 }
 
 // Create a retryable version of the worker
@@ -224,11 +229,9 @@ if (require.main === module) {
   if (dryRun) {
     console.log('Dry run mode - will fetch data but not write to Supabase');
     
-    Promise.all([fetchHyperliquid(), fetchDyDx()])
-      .then(([hyperliquidData, dydxData]) => {
-        console.log(`Fetched ${hyperliquidData.length} Hyperliquid contracts and ${dydxData.length} dYdX contracts`);
-        console.log('Sample Hyperliquid data:', hyperliquidData.slice(0, 2));
-        console.log('Sample dYdX data:', dydxData.slice(0, 2));
+    runDexDerivativesWorker(true)
+      .then(() => {
+        console.log('Dry run completed successfully');
         process.exit(0);
       })
       .catch(error => {
