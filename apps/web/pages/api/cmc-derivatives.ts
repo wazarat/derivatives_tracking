@@ -83,41 +83,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🌐 [API] - URL:', supabaseUrl);
     console.log('🔑 [API] - Key:', supabaseKey.substring(0, 10) + '...'); // Mask the key for security
     
-    // Get the latest timestamp from the cex_derivatives_instruments table
-    console.log('⏰ [API] Fetching latest timestamp...');
-    const { data: latestTimestampData, error: latestTimestampError } = await supabase
-      .from('cex_derivatives_instruments')
-      .select('ts')
-      .order('ts', { ascending: false })
-      .limit(1);
-
-    if (latestTimestampError) {
-      console.error('❌ [API] Error fetching latest timestamp:', latestTimestampError);
-      return res.status(500).json({ 
-        error: 'Failed to fetch latest timestamp',
-        details: latestTimestampError.message,
-        code: latestTimestampError.code
-      });
-    }
-
-    if (!latestTimestampData || latestTimestampData.length === 0) {
-      console.log('⚠️ [API] No timestamp data found, returning empty array');
-      return res.status(200).json({
-        message: 'No data found in cex_derivatives_instruments table',
-        data: []
-      });
-    }
-
-    const latestTimestamp = latestTimestampData[0].ts;
-    console.log('⏰ [API] Latest timestamp:', latestTimestamp);
-
-    // Fetch all derivatives data from the latest timestamp
-    // No filtering by contract_type - treat all as derivatives
-    console.log('🔄 [API] Fetching all derivatives data for timestamp:', latestTimestamp);
-    const { data, error, count } = await supabase
+    // Get data from the last hour to handle multiple timestamps from worker runs
+    console.log('🔍 [API] Fetching recent derivatives data...');
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const { data, error } = await supabase
       .from('cex_derivatives_instruments')
       .select('*')
-      .eq('ts', latestTimestamp);
+      .gte('ts', oneHourAgo)
+      .order('vol24h', { ascending: false })
+      .limit(200); // Get top 200 to ensure we have enough data
 
     if (error) {
       console.error('❌ [API] Error fetching derivatives data:', error);
@@ -153,9 +128,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('📊 [API] Exchange counts:', exchangeCounts);
     }
     
-    // Sort by volume_24h (descending) instead of oi_usd since oi_usd values are all 0
-    console.log('🔄 [API] Sorting data by volume_24h...');
-    const sortedData = data?.sort((a, b) => b.volume_24h - a.volume_24h) || [];
+    // Sort by vol24h (descending) instead of oi since oi values are all 0
+    console.log('🔄 [API] Sorting data by vol24h...');
+    const sortedData = data?.sort((a, b) => b.vol24h - a.vol24h) || [];
     
     // Limit to top 100 if needed
     const top100 = sortedData.slice(0, 100);
@@ -171,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const responseData = {
       data: top100.map(item => ({ ...item, contract_type: 'derivatives' })),
       meta: {
-        timestamp: latestTimestamp,
+        timestamp: new Date().toISOString(),
         totalRecords: data?.length || 0,
         returnedRecords: top100.length,
         sector: sector || 'all',

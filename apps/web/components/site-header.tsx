@@ -96,15 +96,9 @@ export function SiteHeader() {
           <ThemeToggle />
           <UserButton afterSignOutUrl="/" />
           <Sheet>
-            <SheetTrigger>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="ml-2"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
+            <SheetTrigger className="ml-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle menu</span>
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col space-y-4">

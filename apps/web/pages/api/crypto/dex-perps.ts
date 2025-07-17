@@ -49,38 +49,41 @@ export default async function handler(
       });
     }
 
-    // Get the latest timestamp
-    console.log('[DEX-PERPS API] Fetching latest timestamp from dex_derivatives_instruments table');
-    const { data: latestTimestamp, error: timestampError } = await supabase
+    // Get recent timestamps (last 1 hour) to aggregate data from multiple sources
+    console.log('[DEX-PERPS API] Fetching recent timestamps from dex_derivatives_instruments table');
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const { data: recentTimestamps, error: timestampError } = await supabase
       .from('dex_derivatives_instruments')
       .select('ts')
+      .gte('ts', oneHourAgo)
       .order('ts', { ascending: false })
-      .limit(1);
+      .limit(10);
 
     if (timestampError) {
-      console.error('[DEX-PERPS API] Error fetching latest timestamp:', timestampError);
+      console.error('[DEX-PERPS API] Error fetching recent timestamps:', timestampError);
       return res.status(500).json({ 
-        error: 'Database error when fetching timestamp', 
+        error: 'Database error when fetching timestamps', 
         details: timestampError 
       });
     }
 
-    if (!latestTimestamp || latestTimestamp.length === 0) {
+    if (!recentTimestamps || recentTimestamps.length === 0) {
       console.warn('[DEX-PERPS API] No data found in dex_derivatives_instruments table');
       return res.status(404).json({ error: 'No DEX derivatives data found' });
     }
 
-    const latestTs = latestTimestamp[0].ts;
-    console.log(`[DEX-PERPS API] Latest timestamp: ${latestTs}`);
+    const timestamps = recentTimestamps.map(t => t.ts);
+    console.log(`[DEX-PERPS API] Found ${timestamps.length} recent timestamps`);
 
-    // Fetch all records from the latest timestamp
-    console.log('[DEX-PERPS API] Fetching records for latest timestamp');
-    const { data, error } = await supabase
+    // Fetch all records from recent timestamps
+    console.log('[DEX-PERPS API] Fetching records from recent timestamps');
+    const { data: allData, error } = await supabase
       .from('dex_derivatives_instruments')
       .select('*')
-      .eq('ts', latestTs)
+      .in('ts', timestamps)
       .order('vol24h', { ascending: false })
-      .limit(100);
+      .limit(500);
 
     if (error) {
       console.error('[DEX-PERPS API] Error fetching DEX derivatives data:', error);
@@ -89,6 +92,42 @@ export default async function handler(
         details: error 
       });
     }
+
+    console.log(`[DEX-PERPS API] Fetched ${allData?.length || 0} total records from recent timestamps`);
+    
+    // Debug: Log sample records to understand data structure
+    if (allData && allData.length > 0) {
+      console.log('[DEX-PERPS API] Sample records from database:');
+      allData.slice(0, 3).forEach((record, i) => {
+        console.log(`${i+1}. symbol: ${record.symbol}, oi: ${record.oi}, vol24h: ${record.vol24h}, funding_rate: ${record.funding_rate}, price: ${record.price}`);
+      });
+    }
+    
+    // Filter for non-zero values and deduplicate by symbol (keep highest volume)
+    const symbolMap = new Map();
+    const nonZeroData = (allData || []).filter(record => {
+      const hasNonZeroValues = record.oi > 0 || record.vol24h > 0 || record.funding_rate !== 0 || record.price > 0;
+      if (!hasNonZeroValues) {
+        console.log(`[DEX-PERPS API] Filtering out zero-value record: ${record.symbol} (oi: ${record.oi}, vol24h: ${record.vol24h}, funding_rate: ${record.funding_rate}, price: ${record.price})`);
+      }
+      return hasNonZeroValues;
+    });
+    
+    console.log(`[DEX-PERPS API] Found ${nonZeroData.length} records with non-zero values`);
+    
+    // Deduplicate by symbol, keeping the record with highest volume
+    nonZeroData.forEach(record => {
+      const existing = symbolMap.get(record.symbol);
+      if (!existing || record.vol24h > existing.vol24h) {
+        symbolMap.set(record.symbol, record);
+      }
+    });
+    
+    const data = Array.from(symbolMap.values())
+      .sort((a, b) => b.vol24h - a.vol24h)
+      .slice(0, 100);
+      
+    console.log(`[DEX-PERPS API] Final deduplicated data: ${data.length} records`);
 
     console.log(`[DEX-PERPS API] Successfully fetched ${data?.length || 0} records`);
     

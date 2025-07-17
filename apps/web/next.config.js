@@ -70,19 +70,19 @@ const nextConfig = {
     ];
   },
   // Configure rewrites for API endpoints
-  async rewrites() {
-    return {
-      beforeFiles: [
-        // Rewrite API requests to the backend API
-        {
-          source: '/api/:path*',
-          destination: process.env.NEXT_PUBLIC_API_URL 
-            ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` 
-            : 'http://localhost:8000/api/:path*',
-        },
-      ],
-    };
-  },
+  // async rewrites() {
+  //   return {
+  //     beforeFiles: [
+  //       // Rewrite API requests to the backend API
+  //       {
+  //         source: '/api/:path*',
+  //         destination: process.env.NEXT_PUBLIC_API_URL 
+  //           ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` 
+  //           : 'http://localhost:8000/api/:path*',
+  //       },
+  //     ],
+  //   };
+  // },
   // Configure webpack for optimizations
   webpack: (config, { dev, isServer }) => {
     // Optimize bundle size in production

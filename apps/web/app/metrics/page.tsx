@@ -38,7 +38,7 @@ interface MarketOverview {
   last_updated: string;
 }
 
-export default async function MetricsDashboard() {
+export default function MetricsDashboard() {
   const [metrics, setMetrics] = useState<CryptoMetric[]>([]);
   const [overview, setOverview] = useState<MarketOverview | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
