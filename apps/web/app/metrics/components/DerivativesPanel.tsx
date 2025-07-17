@@ -77,14 +77,15 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
           </div>
           
           <div className="bg-muted rounded-lg p-4">
-            <div className="text-sm text-muted-foreground mb-1">Avg. Funding Rate</div>
+            <div className="text-sm text-muted-foreground mb-1">Top Volume Derivative</div>
             <div className="text-2xl font-bold">
-              {stats.averageFundingRate !== null 
-                ? formatPercent(stats.averageFundingRate) 
-                : 'N/A'}
+              {sortedContracts.length > 0 ? sortedContracts[0].symbol : 'N/A'}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {sector === 'cex-futures' ? 'Not applicable for futures' : '8h rate'}
+              {sortedContracts.length > 0 
+                ? `${formatCompactNumber(sortedContracts[0].volume_24h)} 24h volume on ${sortedContracts[0].exchange}`
+                : 'No data available'
+              }
             </div>
           </div>
         </div>
