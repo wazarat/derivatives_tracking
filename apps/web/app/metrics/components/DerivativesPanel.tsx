@@ -100,7 +100,10 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                 <TableHead>Contract Type</TableHead>
                 <TableHead className="text-right">Volume 24h</TableHead>
                 <TableHead className="text-right">Index Price</TableHead>
-                <TableHead className="text-right">Funding Rate</TableHead>
+                {/* Only show Funding Rate column for DEX derivatives */}
+                {sector === 'dex-perps' && (
+                  <TableHead className="text-right">Funding Rate</TableHead>
+                )}
                 <TableHead>Timestamp</TableHead>
               </TableRow>
             </TableHeader>
@@ -112,9 +115,12 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                   <TableCell>{contract.contract_type}</TableCell>
                   <TableCell className="text-right">{formatCompactNumber(contract.volume_24h)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(contract.price)}</TableCell>
-                  <TableCell className="text-right">
-                    {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
-                  </TableCell>
+                  {/* Only show Funding Rate cell for DEX derivatives */}
+                  {sector === 'dex-perps' && (
+                    <TableCell className="text-right">
+                      {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
+                    </TableCell>
+                  )}
                   <TableCell className="text-xs">{new Date(contract.ts).toLocaleString()}</TableCell>
                 </TableRow>
               ))}
@@ -122,8 +128,8 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
           </Table>
         </div>
         
-        {/* Funding Rate Heatmap (only for perpetuals) */}
-        {sector !== 'cex-futures' && (
+        {/* Funding Rate Heatmap (only for DEX derivatives) */}
+        {sector === 'dex-perps' && (
           <div className="mt-8">
             <h3 className="text-lg font-medium mb-4">Funding Rates</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
