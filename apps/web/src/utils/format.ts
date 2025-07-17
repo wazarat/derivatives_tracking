@@ -8,11 +8,14 @@ export function formatCurrency(
   value: number,
   options: Intl.NumberFormatOptions = {}
 ): string {
+  // Use 5 decimal places for prices under $100, 2 decimal places for $100+
+  const decimalPlaces = value < 100 ? 5 : 2;
+  
   const defaultOptions: Intl.NumberFormatOptions = {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
     ...options,
   };
 

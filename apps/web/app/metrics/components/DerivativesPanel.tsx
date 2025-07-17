@@ -111,7 +111,7 @@ export function DerivativesPanel({ sector, title }: DerivativesPanelProps) {
                   <TableCell>{contract.symbol}</TableCell>
                   <TableCell>{contract.contract_type}</TableCell>
                   <TableCell className="text-right">{formatCompactNumber(contract.volume_24h)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(contract.index_price)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(contract.price)}</TableCell>
                   <TableCell className="text-right">
                     {contract.funding_rate !== null ? formatPercent(contract.funding_rate) : 'N/A'}
                   </TableCell>

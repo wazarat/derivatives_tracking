@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,14 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { useDerivatives } from "@/hooks/useDerivatives";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useQuery } from "@tanstack/react-query";
 
 // Define trending instrument interface
 export interface TrendingInstrument {
@@ -37,14 +38,26 @@ interface TrendingTableProps {
 
 export function TrendingTable({ type }: TrendingTableProps) {
   // Fetch trending data based on type
-  const { data: instruments = [], isLoading, error } = useQuery({
-    queryKey: ["trendingInstruments", type],
-    queryFn: async () => {
-      // In a real implementation, this would call an API endpoint
-      // For now, we'll return mock data
-      return mockTrendingData[type] || [];
-    },
-  });
+  const { data: derivativesResponse, isLoading, error } = useDerivatives(
+    type === 'dex-perps' ? 'dex-perps' : (type === 'futures' ? 'cex-futures' : 'cex-perps')
+  );
+
+  // Extract data array from response (handle both array and object with data property)
+  const rawData = Array.isArray(derivativesResponse) ? derivativesResponse : (derivativesResponse?.data || []);
+
+  // Transform raw derivatives data to TrendingInstrument format
+  const instruments: TrendingInstrument[] = rawData.map((item) => ({
+    id: item.id,
+    symbol: item.symbol,
+    name: item.symbol, // Use symbol as name for now
+    venue: item.exchange,
+    price: item.price,
+    change24h: Math.random() * 10 - 5, // Mock data for now
+    volume24h: item.vol24h,
+    trendScore: Math.floor(Math.random() * 100), // Mock data for now
+    socialScore: Math.floor(Math.random() * 100), // Mock data for now
+    technicalScore: Math.floor(Math.random() * 100), // Mock data for now
+  }));
 
   // Function to add to watchlist
   const addToWatchlist = (instrument: TrendingInstrument) => {
