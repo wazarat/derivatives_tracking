@@ -4,6 +4,7 @@ import path from 'path';
 import { cmcDerivativesWorker } from './cmcDerivativesWorker';
 import { run as runHyperliquidWorker } from './hyperliquidDerivativesWorker';
 import { run as runDydxWorker } from './dydxDerivativesWorker';
+import { run as runDexDerivativesWorker } from './dexDerivativesWorker';
 import { createRetryableWorker } from './rest_worker';
 
 // Create retryable versions of the workers
@@ -18,6 +19,11 @@ const retryableHyperliquidWorker = createRetryableWorker(runHyperliquidWorker, {
   maxDelayMs: 30000,
 });
 const retryableDydxWorker = createRetryableWorker(runDydxWorker, {
+  maxRetries: 3,
+  initialDelayMs: 2000,
+  maxDelayMs: 30000,
+});
+const retryableDexDerivativesWorker = createRetryableWorker(runDexDerivativesWorker, {
   maxRetries: 3,
   initialDelayMs: 2000,
   maxDelayMs: 30000,
@@ -39,6 +45,10 @@ async function runAllWorkers() {
     // Run dYdX worker
     const rowCountDydx = await retryableDydxWorker();
     console.log(`dYdX worker completed successfully. Inserted ${rowCountDydx} rows.`);
+    
+    // Run DEX derivatives worker (combines Hyperliquid and dYdX)
+    const rowCountDex = await retryableDexDerivativesWorker();
+    console.log(`DEX derivatives worker completed successfully. Inserted ${rowCountDex} rows.`);
     
     console.log('All derivatives workers completed successfully');
   } catch (error) {
