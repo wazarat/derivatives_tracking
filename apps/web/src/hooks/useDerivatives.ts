@@ -136,7 +136,7 @@ async function fetchDerivatives(sector: DerivativesSector): Promise<DerivativesL
 /**
  * Calculate statistics from derivatives data
  */
-function calculateDerivativesStats(data: any[]): DerivativesStats {
+export function calculateDerivativesStats(data: any[]): DerivativesStats {
   if (!data || data.length === 0) {
     return {
       totalContracts: 0,
