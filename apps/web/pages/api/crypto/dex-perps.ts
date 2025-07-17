@@ -27,14 +27,25 @@ export default async function handler(
   res: NextApiResponse
 ) {
   console.log('[DEX-PERPS API] Fetching DEX perpetuals data');
+  console.log('[DEX-PERPS API] Environment check:');
+  console.log('- NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   try {
     // Check if Supabase client is initialized
     if (!supabase) {
       console.error('[DEX-PERPS API] Supabase client not initialized');
+      console.error('[DEX-PERPS API] Environment variables:');
+      console.error('- NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING');
+      console.error('- SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING');
+      
       return res.status(500).json({ 
         error: 'Server configuration error: Supabase client not initialized',
-        message: 'The server is not properly configured to connect to the database'
+        message: 'The server is not properly configured to connect to the database',
+        envCheck: {
+          supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          supabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+        }
       });
     }
 
@@ -81,11 +92,25 @@ export default async function handler(
 
     console.log(`[DEX-PERPS API] Successfully fetched ${data?.length || 0} records`);
     
+    // Ensure we always return the expected structure
+    if (!data) {
+      console.warn('[DEX-PERPS API] No data returned from Supabase query');
+      return res.status(200).json({ 
+        data: [],
+        message: 'No data available',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     // Set cache headers
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
     
-    // Return the data
-    return res.status(200).json({ data });
+    // Return the data in the expected format
+    return res.status(200).json({ 
+      data,
+      count: data.length,
+      timestamp: new Date().toISOString()
+    });
   } catch (error: any) {
     console.error('[DEX-PERPS API] Unexpected error in DEX perpetuals API:', error);
     // Log the full error object for better debugging
