@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bot, ChevronRight, Copy, Send, User, X } from "lucide-react";
+import { Bot, ChevronRight, Copy, Send, User, X, Bell, Mail } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -139,32 +139,53 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Page Header */}
-      <div className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <h1 className="text-lg font-semibold">Crypto Research Assistant</h1>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="container mx-auto px-4 py-8">
+        {/* Coming Soon Banner */}
+        <Card className="mb-8 border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-orange-600" />
+              <CardTitle className="text-orange-800 dark:text-orange-200">
+                Coming Soon!
+              </CardTitle>
+            </div>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
+              Our AI Research Assistant is currently under development and will be launched soon.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+              <Mail className="h-4 w-4" />
+              <span>You'll be notified via email once the AI assistant is ready to help you with your crypto research questions!</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2">AI Research Assistant</h1>
+          <p className="text-muted-foreground">
+            Get instant answers to your crypto questions
+          </p>
         </div>
-      </div>
-      
-      {/* Page Content */}
-      <div className="container px-4 py-6 md:px-6 md:py-8 flex-1 flex flex-col">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
-          <div className="md:col-span-2 flex flex-col">
-            <Card className="flex-1 flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Chat</CardTitle>
-                    <CardDescription>
-                      Ask questions about crypto, blockchain, and trading
-                    </CardDescription>
+
+        <div className="container px-4 py-6 md:px-6 md:py-8 flex-1 flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+            <div className="md:col-span-2 flex flex-col">
+              <Card className="flex-1 flex flex-col">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Chat</CardTitle>
+                      <CardDescription>
+                        Ask questions about crypto, blockchain, and trading
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleClearChat}>
+                      <X className="h-4 w-4 mr-2" /> Clear Chat
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleClearChat}>
-                    <X className="h-4 w-4 mr-2" /> Clear Chat
-                  </Button>
-                </div>
-              </CardHeader>
+                </CardHeader>
               <CardContent className="flex-1 overflow-y-auto">
                 <div className="space-y-4 pb-4">
                   {messages.map((message) => (
@@ -306,6 +327,7 @@ export default function ChatbotPage() {
               </TabsContent>
             </Tabs>
           </div>
+        </div>
         </div>
       </div>
       
