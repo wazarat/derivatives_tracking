@@ -76,6 +76,14 @@ export default function DexPerpsMinimalPage() {
     setCurrentPage(1);
   }, [selectedExchange]);
 
+  // Ensure filter defaults to "all" when data loads
+  useEffect(() => {
+    if (data.length > 0 && selectedExchange !== "all") {
+      console.log('Resetting filter to "all" - current filter:', selectedExchange);
+      setSelectedExchange("all");
+    }
+  }, [data, selectedExchange]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -138,7 +146,7 @@ export default function DexPerpsMinimalPage() {
                   <span className="text-sm font-medium">Filter by Exchange:</span>
                   <Select value={selectedExchange} onValueChange={setSelectedExchange}>
                     <SelectTrigger className="w-48">
-                      <SelectValue />
+                      <SelectValue placeholder="All Exchanges" />
                     </SelectTrigger>
                     <SelectContent>
                       {exchanges.map((exchange) => (
