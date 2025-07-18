@@ -361,10 +361,9 @@ export function CorrelationsTabWithRealData() {
               <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                 <h4 className="text-sm font-medium mb-2">Chart Explanation:</h4>
                 <p className="text-sm text-muted-foreground">
-                  The Y-axis shows the <strong>actual price</strong> of each instrument in USD. Each colored line represents 
-                  the historical price movement of a selected instrument over the past 30 days. Price scales may vary 
-                  significantly between instruments (e.g., BTC ~$45,000 vs XRP ~$0.50), so correlation patterns 
-                  are more important than absolute price levels.
+                  Each colored line represents the historical price movement of a selected instrument over the past 30 days. 
+                  Price scales may vary significantly between instruments (e.g., BTC ~$45,000 vs XRP ~$0.50), so correlation 
+                  patterns are more important than absolute price levels.
                 </p>
               </div>
               

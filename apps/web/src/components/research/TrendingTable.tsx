@@ -164,11 +164,13 @@ export function TrendingTable({ type }: TrendingTableProps) {
                 <div className="flex items-center justify-end gap-1">
                   Trend Score
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3 w-3 text-muted-foreground" />
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Measures price momentum, volume trends, and market interest over time. Higher scores indicate stronger trending behavior.</p>
+                      <p className="max-w-xs">Measures price momentum, volume trends, and market interest over time. Higher scores indicate stronger trending behavior. <strong>(Mock Data)</strong></p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -177,11 +179,13 @@ export function TrendingTable({ type }: TrendingTableProps) {
                 <div className="flex items-center justify-end gap-1">
                   Social Score
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3 w-3 text-muted-foreground" />
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Aggregates social media mentions, sentiment analysis, and community engagement. Higher scores indicate more positive social sentiment.</p>
+                      <p className="max-w-xs">Aggregates social media mentions, sentiment analysis, and community engagement. Higher scores indicate more positive social sentiment. <strong>(Mock Data)</strong></p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -190,11 +194,13 @@ export function TrendingTable({ type }: TrendingTableProps) {
                 <div className="flex items-center justify-end gap-1">
                   Technical Score
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-3 w-3 text-muted-foreground" />
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Combines technical indicators like RSI, MACD, moving averages, and support/resistance levels. Higher scores suggest stronger technical signals.</p>
+                      <p className="max-w-xs">Combines technical indicators like RSI, MACD, moving averages, and support/resistance levels. Higher scores suggest stronger technical signals. <strong>(Mock Data)</strong></p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
