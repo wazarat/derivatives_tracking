@@ -8,7 +8,7 @@ import { CorrelationChart } from "./CorrelationChart";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, formatPercent, formatCompactNumber } from "@/utils/formatters";
-import { Plus, X, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Plus, X, TrendingUp, TrendingDown } from "lucide-react";
 
 // Predefined colors for chart lines
 const CHART_COLORS = [
@@ -17,36 +17,38 @@ const CHART_COLORS = [
   "#16a34a", // green-600
   "#9333ea", // purple-600
   "#ea580c", // orange-600
-  "#0891b2", // cyan-600
-  "#4f46e5", // indigo-600
-  "#c026d3", // fuchsia-600
 ];
 
-export function CorrelationsTab() {
+export function CorrelationsTabWithChart() {
   const { toast } = useToast();
   const { watchlist, loading: watchlistLoading } = useWatchlist();
   const [selectedInstruments, setSelectedInstruments] = useState<any[]>([]);
   
-  // Maximum of 5 instruments allowed
   const MAX_INSTRUMENTS = 5;
   
-  // Real historical price data for correlation analysis
+  // STEP 6: Add back the chart and correlation logic (this might be causing the crash)
   const [correlationData, setCorrelationData] = useState<any[]>([]);
   const [correlationScore, setCorrelationScore] = useState<number | undefined>(undefined);
   const [isLoadingPriceData, setIsLoadingPriceData] = useState(false);
   
-  // Fetch real historical price data when selected instruments change
+  // STEP 7: Add back the useEffect for historical price data (this might be causing the crash)
   useEffect(() => {
+    console.log("useEffect triggered with selectedInstruments:", selectedInstruments);
+    
     if (selectedInstruments.length === 0) {
+      console.log("No instruments selected, clearing correlation data");
       setCorrelationData([]);
       setCorrelationScore(undefined);
       return;
     }
     
     const fetchHistoricalPriceData = async () => {
+      console.log("Starting fetchHistoricalPriceData...");
       setIsLoadingPriceData(true);
+      
       try {
         // Generate timestamps for the last 30 days
+        console.log("Generating timestamps...");
         const timestamps: string[] = [];
         const today = new Date();
         
@@ -57,7 +59,10 @@ export function CorrelationsTab() {
           timestamps.push(date.toISOString());
         }
         
-        // Fetch historical data for each selected instrument
+        console.log("Generated timestamps:", timestamps.length);
+        
+        // Generate historical data for each selected instrument
+        console.log("Generating historical data...");
         const historicalData: any[] = [];
         
         for (const timestamp of timestamps) {
@@ -68,62 +73,69 @@ export function CorrelationsTab() {
           // For each selected instrument, get the price at this timestamp
           for (const instrument of selectedInstruments) {
             try {
-              // Query Supabase for historical price data
-              // For now, we'll use the current price with some realistic variation
-              // In a real implementation, you'd query historical data from your database
-              const basePrice = instrument.price;
+              const basePrice = instrument.price || 100; // Fallback price
               
-              // Generate realistic price variations based on the instrument type
-              // Same underlying asset (like FARTCOIN) should have very similar prices
-              const isBaseSameAsset = selectedInstruments.some(other => 
-                other.id !== instrument.id && 
-                other.symbol.split('/')[0] === instrument.symbol.split('/')[0]
-              );
+              // Check if this instrument represents the same underlying asset as another
+              const sameAssetInstruments = selectedInstruments.filter(other => {
+                if (other.id === instrument.id) return false;
+                
+                // Extract base symbol (e.g., "FARTCOIN" from "FARTCOIN/USDT" or "FARTCOIN-USD")
+                const getBaseSymbol = (symbol: string) => {
+                  return symbol.split(/[\/\-]/)[0];
+                };
+                
+                return getBaseSymbol(instrument.symbol) === getBaseSymbol(other.symbol);
+              });
               
               let price;
-              if (isBaseSameAsset) {
-                // For same underlying asset, add minimal variation (0.1-2% difference)
+              if (sameAssetInstruments.length > 0) {
+                // For same underlying assets, use minimal variation (±2%)
                 const variation = (Math.random() - 0.5) * 0.04; // ±2% max
                 price = basePrice * (1 + variation);
               } else {
-                // For different assets, use more realistic daily variation
-                const dayIndex = timestamps.indexOf(timestamp);
-                const volatility = instrument.volatility || 30; // Use instrument volatility
-                const dailyChange = (Math.random() - 0.5) * (volatility / 100) * 0.3; // Scale down for daily
-                
-                // Create some trending behavior
-                const trend = Math.sin(dayIndex * 0.2) * 0.1;
-                price = basePrice * (1 + dailyChange + trend);
+                // For different assets, use larger variation
+                const variation = (Math.random() - 0.5) * 0.2; // ±10% max
+                price = basePrice * (1 + variation);
               }
               
-              dayData[instrument.id] = Math.max(price, 0.01); // Ensure positive price
+              dayData[instrument.id] = price;
+              
             } catch (error) {
-              console.error(`Error fetching price for ${instrument.symbol}:`, error);
-              // Fallback to current price
-              dayData[instrument.id] = instrument.price;
+              console.error("Error processing instrument price:", error);
+              dayData[instrument.id] = instrument.price || 100;
             }
           }
           
           historicalData.push(dayData);
         }
         
+        console.log("Historical data generated:", historicalData.length, "days");
         setCorrelationData(historicalData);
         
-        // Calculate real correlation coefficient for pairs
+        // STEP 8: Add back correlation calculation (this might be causing the crash)
+        console.log("Calculating correlation...");
         if (selectedInstruments.length === 2) {
-          const prices1 = historicalData.map(d => d[selectedInstruments[0].id]);
-          const prices2 = historicalData.map(d => d[selectedInstruments[1].id]);
-          const correlation = calculateCorrelation(prices1, prices2);
+          const instrument1Data = historicalData.map(d => d[selectedInstruments[0].id]);
+          const instrument2Data = historicalData.map(d => d[selectedInstruments[1].id]);
+          
+          console.log("Instrument 1 data:", instrument1Data.slice(0, 5));
+          console.log("Instrument 2 data:", instrument2Data.slice(0, 5));
+          
+          const correlation = calculateCorrelation(instrument1Data, instrument2Data);
+          console.log("Calculated correlation:", correlation);
           setCorrelationScore(correlation);
         } else {
           setCorrelationScore(undefined);
         }
         
+        console.log("fetchHistoricalPriceData completed successfully");
+        
       } catch (error) {
-        console.error('Error fetching historical price data:', error);
+        console.error("Error fetching historical price data:", error);
+        console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
         toast({
-          title: "Data Error",
-          description: "Failed to load historical price data. Please try again.",
+          title: "Error",
+          description: "Failed to load price data for correlation analysis",
           variant: "destructive",
         });
       } finally {
@@ -131,11 +143,14 @@ export function CorrelationsTab() {
       }
     };
     
+    console.log("Calling fetchHistoricalPriceData...");
     fetchHistoricalPriceData();
   }, [selectedInstruments, toast]);
   
-  // Calculate Pearson correlation coefficient
+  // STEP 9: Add back correlation calculation function (this might be causing the crash)
   const calculateCorrelation = (x: number[], y: number[]): number => {
+    console.log("calculateCorrelation called with arrays of length:", x.length, y.length);
+    
     const n = x.length;
     if (n === 0) return 0;
     
@@ -148,14 +163,18 @@ export function CorrelationsTab() {
     const numerator = n * sumXY - sumX * sumY;
     const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
     
-    return denominator === 0 ? 0 : numerator / denominator;
+    const result = denominator === 0 ? 0 : numerator / denominator;
+    console.log("Correlation calculation result:", result);
+    return result;
   };
   
   // Handle selecting an instrument from watchlist
   const handleSelectInstrument = (watchlistItem: any) => {
     try {
-      // Validate watchlist item
-      if (!watchlistItem || !watchlistItem.id) {
+      console.log("handleSelectInstrument called with:", watchlistItem);
+      
+      // Basic validation
+      if (!watchlistItem?.id) {
         console.error('Invalid watchlist item:', watchlistItem);
         toast({
           title: "Error",
@@ -175,7 +194,7 @@ export function CorrelationsTab() {
         return;
       }
       
-      // Limit to 5 instruments for correlation analysis
+      // Check max limit
       if (selectedInstruments.length >= MAX_INSTRUMENTS) {
         toast({
           title: "Maximum Reached",
@@ -246,16 +265,17 @@ export function CorrelationsTab() {
         correlationStrength: Math.random() * 2 - 1, // -1 to 1
       };
       
+      console.log("Adding instrument:", instrumentWithColor);
       setSelectedInstruments(prev => [...prev, instrumentWithColor]);
       
-      // Success toast
       toast({
         title: "Instrument Added",
         description: `${watchlistItem.symbol} has been added to correlation analysis.`,
       });
       
     } catch (error) {
-      console.error('Error adding instrument to correlation analysis:', error);
+      console.error("Error in handleSelectInstrument:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
       toast({
         title: "Error",
         description: "Failed to add instrument to correlation analysis. Please try again.",
@@ -263,40 +283,46 @@ export function CorrelationsTab() {
       });
     }
   };
-
+  
   // Handle removing an instrument
   const handleRemoveInstrument = (instrumentId: string) => {
-    setSelectedInstruments(prev => prev.filter(i => i.id !== instrumentId));
-  };
-
-  // Calculate correlation metrics for comparison
-  const getCorrelationMetrics = () => {
-    if (selectedInstruments.length < 2) return null;
-    
-    const metrics = selectedInstruments.map(instrument => ({
-      symbol: instrument.symbol,
-      exchange: instrument.exchange,
-      price: instrument.price,
-      change24h: instrument.change24h,
-      volume24h: instrument.volume24h,
-      color: instrument.color,
-    }));
-    
-    return metrics;
+    try {
+      setSelectedInstruments(prev => prev.filter(i => i.id !== instrumentId));
+      
+      toast({
+        title: "Instrument Removed",
+        description: "Instrument has been removed from correlation analysis.",
+      });
+    } catch (error) {
+      console.error("Error removing instrument:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove instrument. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Panel - Instrument Selection */}
         <div className="w-full lg:w-1/3">
           <Card>
             <CardHeader>
-              <CardTitle>Add from Watchlist</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Select Instruments (With Chart)
+                <Badge variant="secondary">{selectedInstruments.length}/{MAX_INSTRUMENTS}</Badge>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
+              <div className="text-sm text-muted-foreground mb-4">
+                Testing with chart and correlation logic
+              </div>
+              
               {watchlistLoading ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">Loading watchlist...</p>
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
               ) : watchlist.length === 0 ? (
                 <div className="text-center py-4">
@@ -369,7 +395,9 @@ export function CorrelationsTab() {
           </Card>
         </div>
         
+        {/* Right Panel - Chart and Metrics */}
         <div className="w-full lg:w-2/3 space-y-6">
+          {/* STEP 10: Add back the chart component (this might be causing the crash) */}
           <Card>
             <CardHeader>
               <CardTitle>Correlation Analysis</CardTitle>
@@ -399,21 +427,11 @@ export function CorrelationsTab() {
                     ) : correlationScore > 0.3 ? (
                       "Moderate positive correlation. These instruments often move in the same direction."
                     ) : correlationScore > -0.3 ? (
-                      "Weak or no correlation. These instruments move independently of each other."
+                      "Weak correlation. These instruments move somewhat independently."
                     ) : correlationScore > -0.7 ? (
-                      "Moderate negative correlation. When one instrument rises, the other tends to fall."
+                      "Moderate negative correlation. These instruments often move in opposite directions."
                     ) : (
-                      "Strong negative correlation. These instruments typically move in opposite directions."
-                    )}
-                  </p>
-                  <p className="mt-2 text-muted-foreground">
-                    <strong>Trading Insight:</strong>{" "}
-                    {correlationScore > 0.7 ? (
-                      "These instruments may be affected by similar market factors. Consider diversifying your portfolio with less correlated assets."
-                    ) : correlationScore < -0.7 ? (
-                      "These instruments may provide good hedging opportunities against each other."
-                    ) : (
-                      "These instruments could provide diversification benefits in a portfolio."
+                      "Strong negative correlation. These instruments tend to move in opposite directions."
                     )}
                   </p>
                 </div>
@@ -421,154 +439,52 @@ export function CorrelationsTab() {
             </CardContent>
           </Card>
           
-          {/* Enhanced Metrics Comparison */}
-          {selectedInstruments.length > 1 && (
+          {/* Metrics Comparison */}
+          {selectedInstruments.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Enhanced Metrics Comparison</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Compare key metrics across selected instruments for correlation analysis
-                </p>
+                <CardTitle>Metrics Comparison</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {selectedInstruments.map((instrument, index) => (
-                    <div key={instrument.id} className="border rounded-lg p-4 bg-muted/20">
-                      {/* Header */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: instrument.color }}
-                          />
-                          <div>
-                            <div className="font-medium text-sm">{instrument.symbol}</div>
-                            <div className="text-xs text-muted-foreground">{instrument.exchange}</div>
-                          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedInstruments.map((instrument) => (
+                    <div key={instrument.id} className="p-4 border rounded-lg space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: instrument.color }}
+                        />
+                        <div>
+                          <div className="font-medium text-sm">{instrument.symbol}</div>
+                          <div className="text-xs text-muted-foreground">{instrument.exchange}</div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
-                            {formatCurrency(instrument.price)}
-                          </div>
-                          <div className={`text-sm flex items-center gap-1 ${
+                      </div>
+                      
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Price:</span>
+                          <span className="font-medium">{formatCurrency(instrument.price)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">24h Change:</span>
+                          <span className={`font-medium flex items-center gap-1 ${
                             instrument.change24h >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {instrument.change24h >= 0 ? (
-                              <TrendingUp className="h-4 w-4" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4" />
-                            )}
+                            {instrument.change24h >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {formatPercent(instrument.change24h / 100)}
-                          </div>
+                          </span>
                         </div>
-                      </div>
-                      
-                      {/* Metrics Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        {/* Volume Metrics */}
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium">24h Volume</div>
-                          <div className="font-medium">{formatCompactNumber(instrument.volume24h)}</div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Volume 24h:</span>
+                          <span className="font-medium">{formatCompactNumber(instrument.volume24h)}</span>
                         </div>
-                        
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            Volume Δ
-                            <span 
-                              className="cursor-help" 
-                              title="Volume Delta: Percentage change in trading volume compared to the previous period. Positive values indicate increased trading activity, negative values indicate decreased activity."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
-                          </div>
-                          <div className={`font-medium ${
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Volume Δ:</span>
+                          <span className={`font-medium ${
                             instrument.volumeDelta >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {instrument.volumeDelta >= 0 ? '+' : ''}{instrument.volumeDelta.toFixed(1)}%
-                          </div>
-                        </div>
-                        
-                        {/* Derivatives-specific metrics */}
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            Open Interest
-                            <span 
-                              className="cursor-help" 
-                              title="Open Interest: Total number of outstanding derivative contracts that have not been settled. Higher OI indicates more market participation."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
-                          </div>
-                          <div className="font-medium">{formatCompactNumber(instrument.openInterest)}</div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            Funding Rate
-                            <span 
-                              className="cursor-help" 
-                              title="Funding Rate: Periodic payment between long and short positions. Positive rates mean longs pay shorts, negative rates mean shorts pay longs."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
-                          </div>
-                          <div className={`font-medium ${
-                            instrument.fundingRate >= 0 ? 'text-red-600' : 'text-green-600'
-                          }`}>
-                            {formatPercent(instrument.fundingRate)}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            Volatility
-                            <span 
-                              className="cursor-help" 
-                              title="Volatility: Measure of price fluctuation over time. Higher volatility indicates more price movement and potential risk/reward."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
-                          </div>
-                          <div className="font-medium">{instrument.volatility.toFixed(1)}%</div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            Liquidity Score
-                            <span 
-                              className="cursor-help" 
-                              title="Liquidity Score: Composite score (0-100) measuring how easily the instrument can be traded without significant price impact. Higher scores indicate better liquidity."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
-                          </div>
-                          <div className={`font-medium ${
-                            instrument.liquidityScore >= 70 ? 'text-green-600' : 
-                            instrument.liquidityScore >= 40 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {instrument.liquidityScore.toFixed(0)}/100
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Correlation indicator */}
-                      <div className="mt-4 pt-3 border-t">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            Correlation Strength
-                            <span 
-                              className="cursor-help" 
-                              title="Correlation Strength: Measures how closely this instrument moves with others in the selection. Values range from -1 (perfect negative correlation) to +1 (perfect positive correlation)."
-                            >
-                              <Info className="h-3 w-3" />
-                            </span>
+                            {formatPercent(instrument.volumeDelta / 100)}
                           </span>
-                          <div className={`font-medium ${
-                            Math.abs(instrument.correlationStrength) >= 0.7 ? 'text-blue-600' :
-                            Math.abs(instrument.correlationStrength) >= 0.3 ? 'text-yellow-600' : 'text-gray-600'
-                          }`}>
-                            {instrument.correlationStrength >= 0 ? '+' : ''}{instrument.correlationStrength.toFixed(3)}
-                          </div>
                         </div>
                       </div>
                     </div>

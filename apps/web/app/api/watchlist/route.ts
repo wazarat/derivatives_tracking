@@ -47,27 +47,64 @@ export async function GET(req: NextRequest) {
     // For each watchlist item, fetch the latest data from cex_derivatives_instruments
     const enrichedWatchlist = await Promise.all(
       watchlist.map(async (item) => {
-        const { data: latestData, error: dataError } = await supabase
-          .from('cex_derivatives_instruments')
-          .select('*')
-          .eq('exchange', item.exchange)
-          .eq('symbol', item.symbol)
-          .order('ts', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (dataError) {
-          console.error('Error fetching derivative data:', dataError);
-          return item;
+        try {
+          const { data: latestData, error: dataError } = await supabase
+            .from('cex_derivatives_instruments')
+            .select('exchange, symbol, contract_type, price, vol24h, funding_rate, oi, ts')
+            .eq('exchange', item.exchange)
+            .eq('symbol', item.symbol)
+            .order('ts', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (dataError) {
+            console.error('Error fetching derivative data for watchlist item:', dataError);
+            // Return the basic watchlist item with fallback values
+            return {
+              ...item,
+              price: 0,
+              current_price: 0,
+              latest_price: 0,
+              change24h: 0,
+              marketCap: 0,
+              volume24h: 0,
+              volume_24h: 0,
+              vol24h: 0,
+              funding_rate: 0,
+              oi_usd: 0
+            };
+          }
+          
+          return {
+            ...item,
+            price: latestData.price || 0,
+            current_price: latestData.price || 0,
+            latest_price: latestData.price || 0,
+            change24h: 0, // Calculate this from historical data if available
+            marketCap: 0, // This might not be available for derivatives
+            volume24h: latestData.vol24h || 0,
+            volume_24h: latestData.vol24h || 0,
+            vol24h: latestData.vol24h || 0,
+            funding_rate: latestData.funding_rate || 0,
+            oi_usd: latestData.oi || 0
+          };
+        } catch (error) {
+          console.error('Error processing watchlist item:', error);
+          // Return the basic watchlist item with fallback values
+          return {
+            ...item,
+            price: 0,
+            current_price: 0,
+            latest_price: 0,
+            change24h: 0,
+            marketCap: 0,
+            volume24h: 0,
+            volume_24h: 0,
+            vol24h: 0,
+            funding_rate: 0,
+            oi_usd: 0
+          };
         }
-        
-        return {
-          ...item,
-          price: latestData.price,
-          change24h: 0, // Calculate this from historical data if available
-          marketCap: 0, // This might not be available for derivatives
-          volume24h: latestData.volume_24h
-        };
       })
     );
     

@@ -48,17 +48,52 @@ export async function GET(req: NextRequest) {
     // For each portfolio item, fetch the latest price data from cex_derivatives_instruments
     const enrichedPortfolio = await Promise.all(
       portfolio.map(async (item) => {
-        const { data: latestData, error: dataError } = await supabase
-          .from('cex_derivatives_instruments')
-          .select('index_price, vol24h, ts')
-          .eq('exchange', item.exchange)
-          .eq('symbol', item.symbol)
-          .order('ts', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (dataError) {
-          console.error('Error fetching derivative data for portfolio item:', dataError);
+        try {
+          const { data: latestData, error: dataError } = await supabase
+            .from('cex_derivatives_instruments')
+            .select('price, vol24h, ts')
+            .eq('exchange', item.exchange)
+            .eq('symbol', item.symbol)
+            .order('ts', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (dataError) {
+            console.error('Error fetching derivative data for portfolio item:', dataError);
+            return {
+              ...item,
+              current_price: null,
+              unrealized_pnl: null,
+              unrealized_pnl_percentage: null
+            };
+          }
+          
+          // Calculate unrealized P&L
+          const currentPrice = latestData?.price || 0;
+          const entryPrice = parseFloat(item.entry_price);
+          const positionSize = parseFloat(item.position_size);
+          const leverage = parseFloat(item.leverage) || 1;
+          
+          let unrealizedPnl = 0;
+          if (currentPrice && entryPrice) {
+            if (item.position_side === 'long') {
+              unrealizedPnl = (currentPrice - entryPrice) * positionSize * leverage;
+            } else {
+              unrealizedPnl = (entryPrice - currentPrice) * positionSize * leverage;
+            }
+          }
+          
+          const unrealizedPnlPercentage = entryPrice ? (unrealizedPnl / (entryPrice * positionSize)) * 100 : 0;
+          
+          return {
+            ...item,
+            current_price: currentPrice,
+            unrealized_pnl: unrealizedPnl,
+            unrealized_pnl_percentage: unrealizedPnlPercentage,
+            last_price_update: latestData?.ts || null
+          };
+        } catch (error) {
+          console.error('Error processing portfolio item:', error);
           return {
             ...item,
             current_price: null,
@@ -66,31 +101,6 @@ export async function GET(req: NextRequest) {
             unrealized_pnl_percentage: null
           };
         }
-        
-        // Calculate unrealized P&L
-        const currentPrice = latestData?.index_price || 0;
-        const entryPrice = parseFloat(item.entry_price);
-        const positionSize = parseFloat(item.position_size);
-        const leverage = parseFloat(item.leverage) || 1;
-        
-        let unrealizedPnl = 0;
-        if (currentPrice && entryPrice) {
-          if (item.position_side === 'long') {
-            unrealizedPnl = (currentPrice - entryPrice) * positionSize * leverage;
-          } else {
-            unrealizedPnl = (entryPrice - currentPrice) * positionSize * leverage;
-          }
-        }
-        
-        const unrealizedPnlPercentage = entryPrice ? (unrealizedPnl / (entryPrice * positionSize)) * 100 : 0;
-        
-        return {
-          ...item,
-          current_price: currentPrice,
-          unrealized_pnl: unrealizedPnl,
-          unrealized_pnl_percentage: unrealizedPnlPercentage,
-          last_price_update: latestData.ts
-        };
       })
     );
     

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectorTile } from "@/components/research/SectorTile";
 import { TrendingTable } from "@/components/research/TrendingTable";
-import { CorrelationsTab } from "@/components/research/CorrelationsTab";
+import { CorrelationsTabWithRealData as CorrelationsTab } from "@/components/research/CorrelationsTab.with-real-data";
 
 // Define sector data
 const sectors = [
