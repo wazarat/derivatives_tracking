@@ -3,7 +3,7 @@
 import { Users, MessageCircle, Share2, TrendingUp, Bell, Mail } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
+import { Badge } from "../../src/components/ui/badge";
 
 export default function CommunityPage() {
   return (
