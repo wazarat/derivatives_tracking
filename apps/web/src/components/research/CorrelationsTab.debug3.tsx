@@ -94,7 +94,7 @@ export function CorrelationsTabDebug3() {
         
         try {
           // Generate simple test data
-          const testData = [];
+          const testData: any[] = [];
           for (let i = 0; i < 10; i++) {
             const dayData: any = {
               date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
