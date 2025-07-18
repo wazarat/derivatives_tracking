@@ -100,13 +100,29 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="flex items-center space-x-2">
-            <Image 
-              src="/logo.svg" 
-              alt="CanHav Logo" 
-              width={120} 
-              height={40} 
-              priority
-            />
+            <div className="flex items-center">
+              <svg 
+                key="canhav-logo-new-2025" 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 400 120" 
+                width="120" 
+                height="40" 
+                className="h-10 w-auto border-2 border-red-500"
+                style={{backgroundColor: 'yellow'}}
+              >
+                <defs>
+                  <linearGradient id="canhavGradientNew2025" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{stopColor: '#0066CC', stopOpacity: 1}} />
+                    <stop offset="50%" style={{stopColor: '#4D4DFF', stopOpacity: 1}} />
+                    <stop offset="100%" style={{stopColor: '#8A2BE2', stopOpacity: 1}} />
+                  </linearGradient>
+                </defs>
+                <text x="20" y="80" fontFamily="Arial, sans-serif" fontSize="72" fontWeight="bold" fill="url(#canhavGradientNew2025)">
+                  canhav
+                </text>
+              </svg>
+              <span className="ml-2 text-green-500 font-bold text-xl">NEW LOGO TEST</span>
+            </div>
           </Link>
         </div>
         

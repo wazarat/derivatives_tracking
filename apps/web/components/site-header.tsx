@@ -56,13 +56,45 @@ export function SiteHeader() {
         <div className="mr-4 flex">
           {isSignedIn ? (
             <div className="flex items-center space-x-2">
-              <Bitcoin className="h-6 w-6" />
-              <span className="hidden font-bold sm:inline-block">CanHav</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 400 120" 
+                width="120" 
+                height="40" 
+                className="h-8 w-auto"
+              >
+                <defs>
+                  <linearGradient id="canhavGradientSiteHeader" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{stopColor: '#0066CC', stopOpacity: 1}} />
+                    <stop offset="50%" style={{stopColor: '#4D4DFF', stopOpacity: 1}} />
+                    <stop offset="100%" style={{stopColor: '#8A2BE2', stopOpacity: 1}} />
+                  </linearGradient>
+                </defs>
+                <text x="20" y="80" fontFamily="Arial, sans-serif" fontSize="72" fontWeight="bold" fill="url(#canhavGradientSiteHeader)">
+                  canhav
+                </text>
+              </svg>
             </div>
           ) : (
             <Link href="/" className="flex items-center space-x-2">
-              <Bitcoin className="h-6 w-6" />
-              <span className="hidden font-bold sm:inline-block">CanHav</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 400 120" 
+                width="120" 
+                height="40" 
+                className="h-8 w-auto"
+              >
+                <defs>
+                  <linearGradient id="canhavGradientSiteHeaderLink" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{stopColor: '#0066CC', stopOpacity: 1}} />
+                    <stop offset="50%" style={{stopColor: '#4D4DFF', stopOpacity: 1}} />
+                    <stop offset="100%" style={{stopColor: '#8A2BE2', stopOpacity: 1}} />
+                  </linearGradient>
+                </defs>
+                <text x="20" y="80" fontFamily="Arial, sans-serif" fontSize="72" fontWeight="bold" fill="url(#canhavGradientSiteHeaderLink)">
+                  canhav
+                </text>
+              </svg>
             </Link>
           )}
         </div>
