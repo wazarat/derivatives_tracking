@@ -49,16 +49,17 @@ export default async function handler(
       });
     }
 
-    // Get recent timestamps (last 1 hour) to aggregate data from multiple sources
-    console.log('[DEX-PERPS API] Fetching recent timestamps from dex_derivatives_instruments table');
+    // Get the latest timestamp for each exchange to ensure we get fresh data from both
+    console.log('[DEX-PERPS API] Fetching latest timestamps per exchange from dex_derivatives_instruments table');
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     
-    const { data: recentTimestamps, error: timestampError } = await supabase
+    // Get the latest timestamp for each exchange
+    const { data: latestPerExchange, error: timestampError } = await supabase
       .from('dex_derivatives_instruments')
-      .select('ts')
+      .select('exchange, ts')
       .gte('ts', oneHourAgo)
       .order('ts', { ascending: false })
-      .limit(10);
+      .limit(1000); // Get more records to find latest per exchange
 
     if (timestampError) {
       console.error('[DEX-PERPS API] Error fetching recent timestamps:', timestampError);
@@ -68,22 +69,31 @@ export default async function handler(
       });
     }
 
-    if (!recentTimestamps || recentTimestamps.length === 0) {
+    if (!latestPerExchange || latestPerExchange.length === 0) {
       console.warn('[DEX-PERPS API] No data found in dex_derivatives_instruments table');
       return res.status(404).json({ error: 'No DEX derivatives data found' });
     }
 
-    const timestamps = recentTimestamps.map(t => t.ts);
-    console.log(`[DEX-PERPS API] Found ${timestamps.length} recent timestamps`);
+    // Find the latest timestamp for each exchange
+    const exchangeTimestamps = new Map();
+    latestPerExchange.forEach(record => {
+      const currentLatest = exchangeTimestamps.get(record.exchange);
+      if (!currentLatest || record.ts > currentLatest) {
+        exchangeTimestamps.set(record.exchange, record.ts);
+      }
+    });
+    
+    const timestamps = Array.from(exchangeTimestamps.values());
+    console.log(`[DEX-PERPS API] Found latest timestamps for ${exchangeTimestamps.size} exchanges:`, Object.fromEntries(exchangeTimestamps));
 
-    // Fetch all records from recent timestamps
-    console.log('[DEX-PERPS API] Fetching records from recent timestamps');
+    // Fetch all records from the latest timestamps for each exchange
+    console.log('[DEX-PERPS API] Fetching records from latest timestamps per exchange');
     const { data: allData, error } = await supabase
       .from('dex_derivatives_instruments')
       .select('*')
       .in('ts', timestamps)
       .order('vol24h', { ascending: false })
-      .limit(500);
+      .limit(1000); // Increase limit to get all records from both exchanges
 
     if (error) {
       console.error('[DEX-PERPS API] Error fetching DEX derivatives data:', error);
@@ -103,7 +113,7 @@ export default async function handler(
       });
     }
     
-    // Filter for non-zero values and deduplicate by symbol (keep highest volume)
+    // Filter for non-zero values and deduplicate by exchange+symbol (keep highest volume per exchange)
     const symbolMap = new Map();
     const nonZeroData = (allData || []).filter(record => {
       const hasNonZeroValues = record.oi > 0 || record.vol24h > 0 || record.funding_rate !== 0 || record.price > 0;
@@ -115,17 +125,18 @@ export default async function handler(
     
     console.log(`[DEX-PERPS API] Found ${nonZeroData.length} records with non-zero values`);
     
-    // Deduplicate by symbol, keeping the record with highest volume
+    // Deduplicate by exchange+symbol combination, keeping the record with highest volume per exchange
     nonZeroData.forEach(record => {
-      const existing = symbolMap.get(record.symbol);
+      const key = `${record.exchange}:${record.symbol}`;
+      const existing = symbolMap.get(key);
       if (!existing || record.vol24h > existing.vol24h) {
-        symbolMap.set(record.symbol, record);
+        symbolMap.set(key, record);
       }
     });
     
     const data = Array.from(symbolMap.values())
       .sort((a, b) => b.vol24h - a.vol24h)
-      .slice(0, 100);
+      .slice(0, 200); // Increase limit to show more records from both exchanges
       
     console.log(`[DEX-PERPS API] Final deduplicated data: ${data.length} records`);
 

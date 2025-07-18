@@ -35,8 +35,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// API endpoint
+// API endpoints
 const HYPERLIQUID_API = 'https://api.hyperliquid.xyz';
+const DYDX_API = 'https://indexer.dydx.trade/v4'; // Production endpoint
 
 /**
  * Fetch all perpetual contracts from Hyperliquid with proper timeout handling
@@ -157,28 +158,112 @@ async function writeToSupabase(data: any[]) {
 }
 
 /**
- * Main worker function - focuses on Hyperliquid only
+ * Fetch all perpetual contracts from dYdX v4
+ */
+async function fetchDydx() {
+  console.log('Fetching dYdX v4 perpetuals data...');
+  
+  try {
+    // Create an AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    // Get all markets
+    const marketsResponse = await fetch(`${DYDX_API}/perpetualMarkets`, {
+      signal: controller.signal
+    });
+    
+    if (!marketsResponse.ok) {
+      throw new Error(`dYdX API error: ${marketsResponse.status} ${marketsResponse.statusText}`);
+    }
+    
+    const marketsData = await marketsResponse.json() as { markets: Record<string, any> };
+    
+    clearTimeout(timeoutId);
+    
+    interface DerivativeRecord {
+      ts: string;
+      exchange: string;
+      symbol: string;
+      contract_type: string;
+      oi: number;
+      vol24h: number;
+      funding_rate: number;
+      price: number;
+    }
+    
+    // Process the data to match our schema
+    const results: DerivativeRecord[] = Object.values(marketsData.markets).map((market: any) => {
+      const symbol = market.ticker;
+      const price = parseFloat(market.oraclePrice || 0);
+      const openInterestUsd = parseFloat(market.openInterest || 0) * price;
+      const fundingRate = parseFloat(market.nextFundingRate || 0);
+      const volume24h = parseFloat(market.volume24H || 0);
+      
+      return {
+        ts: new Date().toISOString(),
+        exchange: 'dYdX',
+        symbol: symbol,
+        contract_type: 'perpetual',
+        oi: openInterestUsd,
+        vol24h: volume24h,
+        funding_rate: fundingRate,
+        price: price
+      };
+    });
+    
+    console.log(`Successfully fetched ${results.length} dYdX contracts`);
+    console.log('Sample data:', results.slice(0, 3));
+    return results;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('dYdX API request timed out after 10 seconds');
+    } else {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error fetching dYdX data:', errorMessage);
+    }
+    // Don't throw - return empty array to allow Hyperliquid data to still be processed
+    console.log('Continuing with Hyperliquid data only due to dYdX API failure');
+    return [];
+  }
+}
+
+/**
+ * Main worker function - fetches from both Hyperliquid and dYdX
  */
 export async function runDexDerivativesWorker(isDryRun = false) {
-  console.log('Starting DEX derivatives worker (Hyperliquid only)...');
+  console.log('Starting DEX derivatives worker (Hyperliquid + dYdX)...');
   
   if (isDryRun) {
     console.log('Dry run mode - will fetch data but not write to Supabase');
   }
   
   try {
-    // Fetch data from Hyperliquid
-    const hyperliquidData = await fetchHyperliquid();
+    // Fetch data from both sources
+    const [hyperliquidData, dydxData] = await Promise.allSettled([
+      fetchHyperliquid(),
+      fetchDydx()
+    ]);
     
-    if (hyperliquidData.length === 0) {
-      console.log('No data fetched from Hyperliquid');
+    // Extract successful results
+    const hyperliquidResults = hyperliquidData.status === 'fulfilled' ? hyperliquidData.value : [];
+    const dydxResults = dydxData.status === 'fulfilled' ? dydxData.value : [];
+    
+    console.log(`Hyperliquid: ${hyperliquidResults.length} contracts`);
+    console.log(`dYdX: ${dydxResults.length} contracts`);
+    
+    // Combine all data
+    const allData = [...hyperliquidResults, ...dydxResults];
+    
+    if (allData.length === 0) {
+      console.log('No data fetched from any exchange');
       return;
     }
     
-    console.log(`Total records to process: ${hyperliquidData.length}`);
+    console.log(`Total records to process: ${allData.length}`);
     
     // Filter for records with meaningful data
-    const meaningfulData = hyperliquidData.filter((record: any) => 
+    const meaningfulData = allData.filter((record: any) => 
       record.oi > 0 || record.vol24h > 0 || record.funding_rate !== 0 || record.price > 0
     );
     
