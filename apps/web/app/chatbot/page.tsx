@@ -25,7 +25,7 @@ export default function ChatbotPage() {
     {
       id: "welcome",
       role: "assistant",
-      content: "👋 Hi there! I'm your crypto research assistant. How can I help you today?",
+      content: "👋 Hi there! I'm your crypto research assistant. I'm currently under development and will be launched soon. You'll be notified via email once I'm ready to help you with your crypto research questions!",
       timestamp: new Date(),
     },
   ]);
@@ -94,7 +94,7 @@ export default function ChatbotPage() {
       {
         id: "welcome",
         role: "assistant",
-        content: "👋 Hi there! I'm your crypto research assistant. How can I help you today?",
+        content: "👋 Hi there! I'm your crypto research assistant. I'm currently under development and will be launched soon. You'll be notified via email once I'm ready to help you with your crypto research questions!",
         timestamp: new Date(),
       },
     ]);

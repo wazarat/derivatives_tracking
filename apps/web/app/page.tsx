@@ -47,9 +47,15 @@ export default function Home() {
             </div>
             <div className="mx-auto lg:mx-0 relative">
               <div className="relative h-[350px] w-full overflow-hidden rounded-xl border bg-background p-2 shadow-lg">
-                <div className="bg-muted h-full w-full rounded-lg flex items-center justify-center">
-                  <LineChart className="h-24 w-24 text-primary opacity-50" />
-                  <span className="sr-only">Dashboard Preview</span>
+                <div className="h-full w-full rounded-lg overflow-hidden">
+                  <Image
+                    src="/landingimage.png"
+                    alt="CanHav Dashboard Preview"
+                    width={600}
+                    height={350}
+                    className="h-full w-full object-cover rounded-lg"
+                    priority
+                  />
                 </div>
               </div>
             </div>

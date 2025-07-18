@@ -44,9 +44,9 @@ export function SiteHeader() {
       active: pathname === "/chatbot",
     },
     {
-      href: "/analytics",
-      label: "Analytics",
-      active: pathname === "/analytics",
+      href: "/community",
+      label: "Community",
+      active: pathname === "/community",
     },
   ];
 
