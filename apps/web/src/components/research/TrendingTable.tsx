@@ -49,9 +49,13 @@ export function TrendingTable({ type }: TrendingTableProps) {
   const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
   const [selectedInstrument, setSelectedInstrument] = useState<any>(null);
+  const [trendTooltipOpen, setTrendTooltipOpen] = useState(false);
+  const [socialTooltipOpen, setSocialTooltipOpen] = useState(false);
+  const [technicalTooltipOpen, setTechnicalTooltipOpen] = useState(false);
 
-  // Fetch trending data based on type - always use dex-perps for DEX Derivatives
-  const { data: derivativesResponse, isLoading, error } = useDerivatives('dex-perps');
+  // Fetch trending data based on type - use correct data source for each type
+  const dataSource = type === 'dex-perps' || type === 'dex-derivatives' ? 'dex-perps' : 'cex-perps';
+  const { data: derivativesResponse, isLoading, error } = useDerivatives(dataSource);
 
   // Extract data array from response (handle both array and object with data property)
   const rawData = Array.isArray(derivativesResponse) ? derivativesResponse : (derivativesResponse?.data || []);
@@ -140,9 +144,15 @@ export function TrendingTable({ type }: TrendingTableProps) {
     return <div className={`text-right font-medium ${colorClass}`}>{value}</div>;
   };
 
+  // Close tooltips when clicking outside
+  const handleClickOutside = () => {
+    setTrendTooltipOpen(false);
+    setSocialTooltipOpen(false);
+    setTechnicalTooltipOpen(false);
+  };
+
   return (
-    <TooltipProvider>
-      <div className="rounded-md border">
+    <div className="rounded-md border" onClick={handleClickOutside}>
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <p>Loading trending instruments...</p>
@@ -161,48 +171,66 @@ export function TrendingTable({ type }: TrendingTableProps) {
               <TableHead className="text-right">24h Change</TableHead>
               <TableHead className="text-right">24h Volume</TableHead>
               <TableHead className="text-right">
-                <div className="flex items-center justify-end gap-1">
+                <div className="flex items-center justify-end gap-1 relative">
                   Trend Score
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Measures price momentum, volume trends, and market interest over time. Higher scores indicate stronger trending behavior. <strong>(Mock Data)</strong></p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTrendTooltipOpen(!trendTooltipOpen);
+                    }}
+                  >
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                  {trendTooltipOpen && (
+                    <div className="absolute top-full right-0 mt-1 z-50 w-64 p-2 text-xs bg-popover border rounded-md shadow-md">
+                      <p>Measures price momentum, volume trends, and market interest over time. Higher scores indicate stronger trending behavior. <strong>(Mock Data)</strong></p>
+                    </div>
+                  )}
                 </div>
               </TableHead>
               <TableHead className="text-right">
-                <div className="flex items-center justify-end gap-1">
+                <div className="flex items-center justify-end gap-1 relative">
                   Social Score
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Aggregates social media mentions, sentiment analysis, and community engagement. Higher scores indicate more positive social sentiment. <strong>(Mock Data)</strong></p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSocialTooltipOpen(!socialTooltipOpen);
+                    }}
+                  >
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                  {socialTooltipOpen && (
+                    <div className="absolute top-full right-0 mt-1 z-50 w-64 p-2 text-xs bg-popover border rounded-md shadow-md">
+                      <p>Aggregates social media mentions, sentiment analysis, and community engagement. Higher scores indicate more positive social sentiment. <strong>(Mock Data)</strong></p>
+                    </div>
+                  )}
                 </div>
               </TableHead>
               <TableHead className="text-right">
-                <div className="flex items-center justify-end gap-1">
+                <div className="flex items-center justify-end gap-1 relative">
                   Technical Score
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Combines technical indicators like RSI, MACD, moving averages, and support/resistance levels. Higher scores suggest stronger technical signals. <strong>(Mock Data)</strong></p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTechnicalTooltipOpen(!technicalTooltipOpen);
+                    }}
+                  >
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                  {technicalTooltipOpen && (
+                    <div className="absolute top-full right-0 mt-1 z-50 w-64 p-2 text-xs bg-popover border rounded-md shadow-md">
+                      <p>Combines technical indicators like RSI, MACD, moving averages, and support/resistance levels. Higher scores suggest stronger technical signals. <strong>(Mock Data)</strong></p>
+                    </div>
+                  )}
                 </div>
               </TableHead>
               <TableHead>Actions</TableHead>
@@ -269,7 +297,6 @@ export function TrendingTable({ type }: TrendingTableProps) {
           />
         )}
       </div>
-    </TooltipProvider>
   );
 }
 

@@ -5,14 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Star } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { AddTradeDialog } from "@/components/portfolio/AddTradeDialog";
-import { AddToWatchlistDialog } from "@/components/watchlist/AddToWatchlistDialog";
-import { useWatchlist } from "@/hooks/useWatchlist";
 
-interface DexDerivativeData {
+interface DerivativeData {
   id: number;
   exchange: string;
   symbol: string;
@@ -21,22 +17,19 @@ interface DexDerivativeData {
   funding_rate: number;
 }
 
-export default function DexPerpsMinimalPage() {
-  const [data, setData] = useState<DexDerivativeData[]>([]);
+export default function CexPerpsMinimalPage() {
+  const [data, setData] = useState<DerivativeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedExchange, setSelectedExchange] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  
-  const { toast } = useToast();
-  const { addToWatchlist, isInWatchlist } = useWatchlist();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/crypto/dex-perps');
+        const response = await fetch('/api/crypto/cex-perps');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -44,12 +37,8 @@ export default function DexPerpsMinimalPage() {
         setData(result.data || []);
         setError(null);
       } catch (err) {
-        console.error('Error fetching DEX perps data:', err);
-        if (err instanceof Error && err.message.includes('404')) {
-          setError('HTTP error! status: 404 - DEX derivatives data not available');
-        } else {
-          setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        }
+        console.error('Error fetching CEX perps data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
       } finally {
         setLoading(false);
       }
@@ -107,28 +96,20 @@ export default function DexPerpsMinimalPage() {
         </Button>
       </div>
       
-      <h1 className="text-3xl font-bold mb-6">DEX Perpetuals Research</h1>
+      <h1 className="text-3xl font-bold mb-6">CEX Derivatives Traders</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>DEX Perpetuals Market Overview</CardTitle>
+          <CardTitle>CEX Derivatives Market Overview</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <p>Loading DEX perpetuals data...</p>
+              <p>Loading CEX derivatives data...</p>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <p className="text-red-500 mb-2">Error: {error}</p>
-                {error.includes('404') && (
-                  <div className="text-sm text-muted-foreground">
-                    <p>The DEX derivatives data is not available yet.</p>
-                    <p>This feature requires the dex_derivatives_instruments table to be set up in Supabase.</p>
-                  </div>
-                )}
-              </div>
+              <p className="text-red-500">Error: {error}</p>
             </div>
           ) : (
             <>
@@ -163,7 +144,7 @@ export default function DexPerpsMinimalPage() {
                     <TableHead>Symbol</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-right">24h Volume</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right">Funding Rate</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -180,33 +161,7 @@ export default function DexPerpsMinimalPage() {
                         {formatCompactNumber(item.vol24h)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <AddToWatchlistDialog
-                            trigger={
-                              <Button variant="outline" size="sm">
-                                <Star className="h-4 w-4" />
-                              </Button>
-                            }
-                            contract={{
-                              exchange: item.exchange,
-                              symbol: item.symbol,
-                              contract_type: "derivatives",
-                              index_price: item.price
-                            }}
-                          />
-                          <AddTradeDialog
-                            trigger={
-                              <Button variant="outline" size="sm">
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            }
-                            prefilledData={{
-                              exchange: item.exchange,
-                              symbol: item.symbol,
-                              entry_price: item.price.toString()
-                            }}
-                          />
-                        </div>
+                        {formatPercent(item.funding_rate)}
                       </TableCell>
                     </TableRow>
                   ))}

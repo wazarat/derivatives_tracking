@@ -45,11 +45,7 @@ export default function DexPerpsMinimalPage() {
         setError(null);
       } catch (err) {
         console.error('Error fetching DEX perps data:', err);
-        if (err instanceof Error && err.message.includes('404')) {
-          setError('HTTP error! status: 404 - DEX derivatives data not available');
-        } else {
-          setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        }
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
       } finally {
         setLoading(false);
       }
@@ -120,15 +116,7 @@ export default function DexPerpsMinimalPage() {
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <p className="text-red-500 mb-2">Error: {error}</p>
-                {error.includes('404') && (
-                  <div className="text-sm text-muted-foreground">
-                    <p>The DEX derivatives data is not available yet.</p>
-                    <p>This feature requires the dex_derivatives_instruments table to be set up in Supabase.</p>
-                  </div>
-                )}
-              </div>
+              <p className="text-red-500">Error: {error}</p>
             </div>
           ) : (
             <>
